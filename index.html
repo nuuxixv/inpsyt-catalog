@@ -1,56 +1,111 @@
-﻿<!DOCTYPE html>
+﻿
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Inpsyt 2026 Catalog Viewer</title>
+  <title>INPSYT 2026 Catalog Viewer</title>
   <style>
     :root {
-      color-scheme: light dark;
-      --bg: #f3f6fb;
+      --bg: #f4f6fb;
       --panel: #ffffff;
-      --border: #e0e6ef;
-      --text: #1b2430;
-      --muted: #5b6576;
-      --accent: #1f6bff;
-      --shadow: 0 14px 32px rgba(15, 23, 42, 0.18);
+      --border: #e5e7eb;
+      --text: #0f172a;
+      --muted: #6b7280;
+      --accent: #2264ff;
+      --accent-soft: rgba(34, 100, 255, 0.08);
+      --shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
     }
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
     body {
       margin: 0;
-      font-family: 'Pretendard', 'Segoe UI', sans-serif;
       background: var(--bg);
       color: var(--text);
+      font-family: 'Pretendard', 'Noto Sans KR', 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+    body.nav-hidden #tocPanel {
+      transform: translateX(-100%);
+      box-shadow: none;
+    }
+    body.nav-hidden #openNavHandle {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    body.fullscreen-active #openNavHandle {
+      top: 16px;
+    }
+    .app-shell {
       display: flex;
       min-height: 100vh;
-      transition: margin 0.3s ease;
+      overflow: hidden;
     }
-    nav {
-      width: 300px;
+    aside#tocPanel {
+      width: 320px;
       background: var(--panel);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       position: sticky;
       top: 0;
-      height: 100vh;
+      min-height: 100vh;
       transition: transform 0.3s ease;
-      z-index: 1000;
+      z-index: 30;
     }
-    nav header {
+    #tocPanel header {
       padding: 20px;
-      font-size: 1.1rem;
-      font-weight: 600;
+      border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 10px;
     }
     #collapseNav {
       border: none;
       background: none;
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       cursor: pointer;
       color: var(--muted);
+    }
+    .nav-section {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-section h2 {
+      margin: 0 0 12px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+    }
+    #quickLinks {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 8px;
+    }
+    #quickLinks button {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #f9fafb;
+      text-align: left;
+      font-size: 0.82rem;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    #quickLinks button strong {
+      font-size: 0.8rem;
+      color: var(--accent);
+    }
+    #quickLinks button.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
     }
     #tocList {
       list-style: none;
@@ -65,361 +120,948 @@
       background: none;
       padding: 12px 20px;
       text-align: left;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
       cursor: pointer;
       border-left: 4px solid transparent;
     }
     #tocList li button span {
-      display: block;
+      font-size: 0.85rem;
       color: var(--muted);
-      font-size: 0.8rem;
+      white-space: nowrap;
     }
     #tocList li button.active {
-      background: rgba(31, 107, 255, 0.12);
+      background: var(--accent-soft);
       border-left-color: var(--accent);
       font-weight: 600;
     }
-    .nav-handle {
+    #openNavHandle {
       position: fixed;
-      left: 12px;
-      top: 16px;
-      padding: 8px 12px;
-      border-radius: 999px;
+      left: 16px;
+      top: 24px;
       border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 10px 16px;
       background: var(--panel);
-      color: var(--text);
-      cursor: pointer;
       box-shadow: var(--shadow);
+      font-weight: 600;
+      cursor: pointer;
       opacity: 0;
       pointer-events: none;
-      z-index: 1200;
+      transition: opacity 0.2s ease;
+      z-index: 40;
     }
-    body.nav-hidden nav {
-      transform: translateX(-100%);
-    }
-    body.nav-hidden .nav-handle {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    main {
+    main#viewerApp {
       flex: 1;
       display: flex;
       flex-direction: column;
+      min-height: 100vh;
+      position: relative;
     }
     .viewer-toolbar {
       display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
       justify-content: space-between;
-      align-items: center;
-      padding: 14px 22px;
+      padding: 16px 24px;
+      background: var(--panel);
       border-bottom: 1px solid var(--border);
-      background: var(--panel);
-      gap: 20px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
-    .toolbar-actions {
+    .toolbar-group {
       display: flex;
       align-items: center;
-      gap: 14px;
-      position: relative;
+      gap: 12px;
+      flex-wrap: wrap;
     }
-    .search input {
-      width: 280px;
-      padding: 8px 12px;
-      border-radius: 10px;
+    .toolbar-group label {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .page-controls,
+    .zoom-controls,
+    .view-controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       border: 1px solid var(--border);
-      font-size: 0.95rem;
+      border-radius: 999px;
+      padding: 6px 12px;
+      background: #f9fafb;
     }
-    .search-results {
-      position: absolute;
-      top: calc(100% + 8px);
-      right: 0;
-      width: 360px;
-      max-height: 320px;
-      overflow-y: auto;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      box-shadow: var(--shadow);
-      display: none;
-      z-index: 900;
-    }
-    .search-results.visible {
-      display: block;
-    }
-    .search-results button {
-      width: 100%;
-      text-align: left;
+    .page-controls input,
+    .zoom-controls input {
+      width: 64px;
       border: none;
-      background: none;
-      padding: 10px 14px;
-      cursor: pointer;
-    }
-    .search-results button + button {
-      border-top: 1px solid var(--border);
-    }
-    .search-results button strong {
-      display: block;
-      font-size: 0.95rem;
-      margin-bottom: 2px;
-    }
-    .search-results button span {
-      display: block;
-      color: var(--muted);
-      font-size: 0.8rem;
-    }
-    .search-empty {
-      padding: 12px 14px;
-      color: var(--muted);
+      background: transparent;
+      text-align: center;
       font-size: 0.9rem;
+      outline: none;
     }
-    .viewer {
-      flex: 1;
-      padding: 24px;
-      overflow-y: auto;
-      display: flex;
-      justify-content: center;
+    .page-controls span,
+    .zoom-controls span {
+      font-size: 0.85rem;
+      color: var(--muted);
     }
-    .page-image img {
-      width: 100%;
-      max-width: 1100px;
-      border-radius: 12px;
-      box-shadow: 0 24px 50px rgba(0,0,0,0.18);
-      background: #fff;
-    }
-    .primary {
-      border: none;
-      background: var(--accent);
-      color: #fff;
+    .toolbar-button {
+      border: 1px solid var(--border);
+      border-radius: 999px;
       padding: 8px 14px;
-      border-radius: 8px;
+      background: var(--panel);
       cursor: pointer;
+      font-size: 0.9rem;
+      transition: border-color 0.2s ease, color 0.2s ease;
+    }
+    .toolbar-button.active {
+      border-color: var(--accent);
+      color: var(--accent);
       font-weight: 600;
     }
-    @media (max-width: 900px) {
-      body {
-        flex-direction: column;
-      }
-      nav {
+    .toolbar-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+    }
+    .search-bar {
+      padding: 12px 24px 0;
+    }
+    .search-field {
+      position: relative;
+      width: min(480px, 100%);
+      margin-left: auto;
+    }
+    #searchInput {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    #searchResults {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      width: min(520px, 100vw - 32px);
+      max-height: 320px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      display: none;
+      z-index: 12;
+    }
+    #searchResults.visible {
+      display: block;
+    }
+    #searchResults button {
+      width: 100%;
+      border: none;
+      background: none;
+      text-align: left;
+      padding: 12px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+    }
+    #searchResults button:last-child {
+      border-bottom: none;
+    }
+    #searchResults strong {
+      display: block;
+      font-size: 0.92rem;
+      margin-bottom: 4px;
+    }
+    #searchResults span {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    #viewer {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    #pageStage {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+      padding: 24px;
+      background: linear-gradient(135deg, #fdfdff 0%, #f4f6fb 100%);
+    }
+    #spread {
+      display: inline-flex;
+      gap: 24px;
+      transform-origin: top center;
+      transition: transform 0.15s ease;
+    }
+    .page-sheet {
+      position: relative;
+      border-radius: 18px;
+      box-shadow: 0 25px 60px rgba(15, 23, 42, 0.18);
+      overflow: hidden;
+      background: #fff;
+    }
+    .page-sheet img {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: none;
+    }
+    .page-sheet figcaption {
+      position: absolute;
+      bottom: 12px;
+      left: 16px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(34, 100, 255, 0.85);
+      color: #fff;
+      font-size: 0.8rem;
+    }
+    #thumbnailStrip {
+      display: flex;
+      gap: 8px;
+      padding: 12px 20px;
+      overflow-x: auto;
+      border-top: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(12px);
+    }
+    #thumbnailStrip button {
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 4px;
+      background: none;
+      cursor: pointer;
+      display: grid;
+      gap: 4px;
+      min-width: 96px;
+    }
+    #thumbnailStrip button.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    #thumbnailStrip img {
+      width: 100%;
+      border-radius: 8px;
+      display: block;
+    }
+    #thumbnailStrip span {
+      font-size: 0.78rem;
+      text-align: center;
+      color: var(--muted);
+    }
+    @media (max-width: 1024px) {
+      aside#tocPanel {
         position: fixed;
         left: 0;
         top: 0;
         bottom: 0;
-        transform: translateX(-100%);
+        height: 100vh;
         box-shadow: var(--shadow);
       }
-      body.nav-show nav {
-        transform: translateX(0);
+      body.nav-hidden main#viewerApp {
+        margin-left: 0;
       }
-      .nav-handle {
-        opacity: 1;
-        pointer-events: auto;
-      }
+    }
+    @media (max-width: 768px) {
       .viewer-toolbar {
         flex-direction: column;
         align-items: flex-start;
       }
-      .toolbar-actions {
-        width: 100%;
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      .search input,
-      .search-results {
+      .search-bar {
+        padding: 12px 16px 0;
         width: 100%;
       }
-      .page-image img {
-        max-width: 100%;
+      #pageStage {
+        padding: 16px;
+      }
+      #thumbnailStrip {
+        padding: 10px;
       }
     }
   </style>
 </head>
-<body>
-  <nav id="toc">
-    <header>
-      <span>목차</span>
-      <button id="collapseNav" type="button" aria-label="목차 접기">⟨</button>
-    </header>
-    <ul id="tocList"></ul>
-  </nav>
-  <button class="nav-handle" id="navHandle" type="button" aria-label="목차 열기">목차</button>
-  <main>
-    <div class="viewer-toolbar">
-      <div class="toolbar-left">
-        <strong>Inpsyt Catalog Viewer</strong>
-      </div>
-      <div class="toolbar-actions">
-        <div class="search">
-          <input type="search" id="searchInput" placeholder="검색어를 입력하세요" />
-          <div class="search-results" id="searchResults"></div>
+<body class="nav-hidden">
+  <button id="openNavHandle">목차 열기</button>
+  <div class="app-shell">
+    <aside id="tocPanel">
+      <header>
+        <div>
+          <div style="font-weight:600; font-size:1rem;">INPSYT Catalog</div>
+          <small style="color:var(--muted);">2026</small>
         </div>
-        <button class="primary" id="openPdf" type="button">PDF 원본 열기</button>
+        <button id="collapseNav" title="목차 접기">⟨</button>
+      </header>
+      <section class="nav-section">
+        <h2>빠른 이동</h2>
+        <div id="quickLinks"></div>
+      </section>
+      <section class="nav-section" style="flex:1; padding-bottom:0; border-bottom:none;">
+        <h2>전체 페이지</h2>
+        <ul id="tocList"></ul>
+      </section>
+    </aside>
+    <main id="viewerApp">
+      <div class="viewer-toolbar">
+        <div class="toolbar-group">
+          <button class="toolbar-button" id="navToggle" type="button">목차</button>
+          <div class="page-controls">
+            <button class="toolbar-icon" id="prevPage" aria-label="이전">‹</button>
+            <input type="number" id="pageInput" min="1" value="1" />
+            <span>/ <span id="totalPages">0</span></span>
+            <button class="toolbar-icon" id="nextPage" aria-label="다음">›</button>
+          </div>
+          <div class="view-controls">
+            <button class="toolbar-button" data-view="single" id="singleView">한면</button>
+            <button class="toolbar-button" data-view="dual" id="dualView">두면</button>
+          </div>
+        </div>
+        <div class="toolbar-group">
+          <div class="zoom-controls">
+            <button class="toolbar-button" data-fit="width">가로맞춤</button>
+            <button class="toolbar-button" data-fit="height">세로맞춤</button>
+            <button class="toolbar-icon" id="zoomOut">−</button>
+            <input type="number" id="zoomPercent" value="100" min="10" max="400" />
+            <span>%</span>
+            <button class="toolbar-icon" id="zoomIn">+</button>
+          </div>
+          <button class="toolbar-button" id="fullscreenToggle">전체화면</button>
+          <button class="toolbar-button" id="openPdf">PDF 보기</button>
+        </div>
       </div>
-    </div>
-    <div class="viewer">
-      <div class="page-image">
-        <img id="pageImage" src="webp/[inpsyt]2026Catalog_001.webp" alt="Page" loading="lazy" />
+      <div class="search-bar">
+        <div class="search-field">
+          <input type="text" id="searchInput" placeholder="카탈로그 전체 검색" autocomplete="off" />
+          <div id="searchResults"></div>
+        </div>
       </div>
-    </div>
-  </main>
+      <section id="viewer">
+        <div id="pageStage">
+          <div id="spread"></div>
+        </div>
+        <div id="thumbnailStrip"></div>
+      </section>
+    </main>
+  </div>
   <script>
-    const state = {
-      pages: [],
-      active: 0,
-      pdfUrl: "2026 인싸이트 카달로그.pdf",
-    };
+    (function () {
+      const quickLinks = [
+        { title: '고객지원 메뉴 안내', page: 2 },
+        { title: '구매자격 관리 정책', page: 3 },
+        { title: '디지털 배지 안내', page: 4 },
+        { title: '추천검사 의료기관', page: 14 },
+        { title: '추천검사 다문화 발달 검사', page: 16 },
+        { title: '추천검사 영유아보육기관/육아종합지원센터/Wee센터', page: 17 },
+        { title: '추천검사 느린 학습자·가정상담·진로/취업 및 기타', page: 18 },
+        { title: '추천검사 초/중/고 심리·정서·사회성 회복 지원 프로그램', page: 20 },
+        { title: '추천검사 대학 상담/교수학습/취창업/국제교류', page: 21 },
+        { title: '추천검사 근로자 지원 프로그램(EAP)', page: 22 },
+        { title: 'K-WISC-V 한국 웩슬러 아동지능검사 5판', page: 26 },
+        { title: 'K-WISC-V 관련 도서 및 QnA', page: 26 },
+        { title: 'K-WPPSI-IV 한국 웩슬러 유아지능검사 4판', page: 27 },
+        { title: 'KABC-II 한국 카우프만 아동 지능검사 2', page: 27 },
+        { title: 'KBIT2 한국판 카우프만 간편지능검사 2', page: 28 },
+        { title: 'K-Leiter-R 한국판 라이터 비언어성 지능검사', page: 28 },
+        { title: 'GOLDEN 성격유형검사', page: 30 },
+        { title: 'GOLDEN 아동·청소년 성격유형검사', page: 30 },
+        { title: 'STS 6요인 기질검사', page: 31 },
+        { title: 'K-MBI 한국형 만하임 개인력 검사', page: 31 },
+        { title: 'K·OCEAN 성격검사 대학/성인용', page: 32 },
+        { title: 'K·OCEAN 성격검사 청소년용', page: 32 },
+        { title: 'K-JPAQ 한국어판 조인스 성격적응 검사', page: 33 },
+        { title: 'BCT 인아웃 밸런스 역량검사', page: 33 },
+        { title: 'PAI 성격평가질문지 증보판', page: 34 },
+        { title: 'PAI-A 청소년 성격평가질문지 증보판', page: 34 },
+        { title: 'PAI-PS 교정용 성격평가질문지', page: 35 },
+        { title: 'PAI-A-PS 보호관찰소용 성격평가질문지', page: 35 },
+        { title: 'NEO 성격검사', page: 36 },
+        { title: '한국판 Young 심리도식 질문지', page: 36 },
+        { title: 'CST 성격강점검사', page: 37 },
+        { title: 'CST-A 성격강점검사 청소년용', page: 37 },
+        { title: 'KPRC 한국 아동·청소년 인성평정척도', page: 38 },
+        { title: 'KPRC 교사평정용', page: 38 },
+        { title: 'K-EPS 한국판 아이젱크 성격검사', page: 39 },
+        { title: 'EST-C 아동 자아강도 검사', page: 39 },
+        { title: 'SCI-II 자아개념검사', page: 40 },
+        { title: 'MPD 심리·사회성 발달검사', page: 40 },
+        { title: 'IESS 통합스트레스검사', page: 42 },
+        { title: 'IESS-A 아동·청소년 통합스트레스검사', page: 42 },
+        { title: 'TBI 교사 심리적 소진 검사', page: 43 },
+        { title: 'TBI-EC 영유아교사 소진 척도', page: 43 },
+        { title: 'OHSS 직무스트레스 검사', page: 44 },
+        { title: 'OCRI 조직 갈등 해결역량 검사', page: 44 },
+        { title: 'IEEJ 통합직무스트레스검사', page: 45 },
+        { title: 'NAS-PI 다면적 분노검사', page: 45 },
+        { title: 'MHS:D 한국형 정신건강 선별 도구: 우울', page: 46 },
+        { title: 'MHS:A 한국형 정신건강 선별 도구: 불안', page: 46 },
+        { title: 'MHS:S 한국형 정신건강 선별 도구: 자살경향성', page: 47 },
+        { title: 'K-MSI 한국판 결혼만족도검사', page: 47 },
+        { title: 'K-STAXI-2 상태·특성 분노 표현 검사', page: 48 },
+        { title: 'K-STAXI-2 청소년용', page: 48 },
+        { title: 'K-STAI-YZ 상태-특성불안 검사', page: 49 },
+        { title: 'RCMAS-2 아동불안척도', page: 49 },
+        { title: 'KiRi 통합적 대인관계검사', page: 50 },
+        { title: 'K-IIP 한국형 대인관계검사', page: 50 },
+        { title: 'KIPR 아동·청소년 교우관계검사', page: 51 },
+        { title: 'K-EQ-i:YV 정서지능 검사', page: 51 },
+        { title: 'K-CDI 2 한국어판 아동우울척도', page: 52 },
+        { title: 'KDS 한국우울증검사', page: 52 },
+        { title: 'SRI 스트레스 탄력성 척도', page: 53 },
+        { title: 'ESI 정서적 스트레스 검사', page: 53 },
+        { title: 'K·BASC-3 한국판 정서-행동 평가시스템', page: 56 },
+        { title: 'K·BASC-3 BESS 정서-행동 선별 시스템', page: 56 },
+        { title: 'RS 회복탄력성 검사', page: 57 },
+        { title: 'RISE 위험요소 및 강점검사', page: 57 },
+        { title: 'MindFit 마인드핏 적응역량검사', page: 58 },
+        { title: 'ABAS 청소년행동평가척도', page: 58 },
+        { title: 'SS-PB 사회적 기술 및 문제행동 검사', page: 59 },
+        { title: 'K-SAED 한국판 정서행동문제 검사', page: 59 },
+        { title: 'K-DTVP-3 한국판 아동 시지각발달검사', page: 62 },
+        { title: 'K-DTVP-A 한국판 시지각 발달검사 청소년용', page: 62 },
+        { title: 'K-BOT-2 한국판 운동검사 2', page: 63 },
+        { title: 'K-MVPT-4 한국판 시지각검사 4판', page: 63 },
+        { title: 'K-ARS-5 한국판 ADHD 평가척도 5판', page: 64 },
+        { title: 'WMT 작업기억력 검사', page: 64 },
+        { title: 'C-TMT 실행기능 검사', page: 65 },
+        { title: 'CCTT 아동 색 선로 검사', page: 65 },
+        { title: 'STROOP 노인용 색상-단어 검사', page: 66 },
+        { title: 'STROOP 아동 색상-단어 검사', page: 66 },
+        { title: 'FACT-II 개인적응형 주의력 검사', page: 67 },
+        { title: 'K-BRIEF-2 실행기능 평가 검사', page: 67 },
+        { title: 'K-BNT 한국판 보스톤 이름대기검사', page: 68 },
+        { title: 'K-BNT-C 아동용 이름대기검사', page: 68 },
+        { title: 'K-TTFC-2 한국 아동 토큰검사', page: 69 },
+        { title: 'SCI-IGD 인터넷 게임장애 임상면담', page: 69 },
+        { title: 'K-MMSE-2 한국판 간이정신상태검사', page: 72 },
+        { title: 'SIB-K 중증인지장애평가척도', page: 72 },
+        { title: 'LICA 노인인지기능검사', page: 73 },
+        { title: 'KDRS-2 한국판 치매평가 검사', page: 73 },
+        { title: 'KART 한국 성인 읽기검사', page: 74 },
+        { title: 'BCCD 인지-의사소통장애 간편검사', page: 74 },
+        { title: 'EMS 노인 기억장애 검사', page: 75 },
+        { title: 'S-IADL/S-ADL 노인일상활동평가', page: 75 },
+        { title: 'K-Bayley-4 한국 베일리 발달검사', page: 78 },
+        { title: 'PCPA 부모-아동 놀이평가도구', page: 78 },
+        { title: 'PAT-2 부모양육태도검사', page: 79 },
+        { title: 'ESRA 초등학교 준비도 검사', page: 79 },
+        { title: 'K-CDI infant 영아발달검사', page: 80 },
+        { title: 'K-CDI 아동발달검사 부모용/교사용', page: 80 },
+        { title: 'KIDS 한국영아발달검사', page: 81 },
+        { title: 'SRRS 영유아 자기조절력 검사', page: 81 },
+        { title: 'KCDR-R 영유아 발달선별검사', page: 82 },
+        { title: 'K-TABS 영유아 기질 및 행동 척도', page: 82 },
+        { title: 'K-PET 부모 양육효능감 검사', page: 83 },
+        { title: 'PCT 부모양육특성 검사', page: 83 },
+        { title: 'CIBT 아동상호작용 검사', page: 84 },
+        { title: 'IBS 부모아동 상호작용행동검사', page: 84 },
+        { title: 'K-PSI-4 부모 양육스트레스 검사', page: 85 },
+        { title: 'K-SIPA 청소년 부모 양육스트레스 검사', page: 85 },
+        { title: 'PRS-EA 청소년 자녀 부모역할 수행 검사', page: 86 },
+        { title: 'K-PRQ 부모자녀관계검사', page: 86 },
+        { title: 'EBT 영유아 식행동 검사', page: 87 },
+        { title: '우리아이 교육환경 검사', page: 87 },
+        { title: 'BeDevel-Q 걸음마기 행동 선별 설문', page: 90 },
+        { title: 'BeDevel-I 걸음마기 행동 선별 면담', page: 90 },
+        { title: 'BeDevel-P 걸음마기 행동 선별 놀이', page: 91 },
+        { title: 'C-SLT 아동 사회적 언어 검사', page: 91 },
+        { title: 'ESDM 영유아 자폐아동 체크리스트', page: 92 },
+        { title: 'SRS-2 사회적 반응성 검사 영유아용', page: 92 },
+        { title: 'SRS-2 사회적 반응성 검사 아동/청소년', page: 93 },
+        { title: 'SRS-2 사회적 반응성 검사 성인용', page: 93 },
+        { title: 'K-CARS 2 한국판 자폐 평정 척도', page: 94 },
+        { title: 'PACC 아동발달 ABA 체크리스트', page: 94 },
+        { title: 'ADI-R 자폐증 진단 면담지', page: 95 },
+        { title: 'SCQ 사회적 의사소통 설문지', page: 95 },
+        { title: 'ADOS-2 자폐증 진단 관찰 스케줄', page: 96 },
+        { title: 'FCPI 유학생 심리 건강 검사', page: 98 },
+        { title: 'CAT-2 대학적응력검사', page: 98 },
+        { title: 'CCT 대학생 핵심역량검사', page: 99 },
+        { title: 'MACT 대학 적응 및 진로발달 검사', page: 99 },
+        { title: 'MLST-II 학습전략검사', page: 102 },
+        { title: 'LQS 학습역량검사', page: 102 },
+        { title: 'ALSA 청소년 학습전략검사', page: 103 },
+        { title: 'WISE 학습종합검사', page: 103 },
+        { title: 'AMT 학업동기검사', page: 104 },
+        { title: 'BASA:CT 기초학습능력종합검사', page: 106 },
+        { title: 'BASA:R 읽기 수행평가', page: 106 },
+        { title: 'BASA:M 수학 수행평가', page: 107 },
+        { title: 'BASA:WE 쓰기 수행평가', page: 107 },
+        { title: 'BASA:V 어휘 검사', page: 108 },
+        { title: 'BASA:RC 읽기이해 검사', page: 108 },
+        { title: 'BASA:EL 초기문해 검사', page: 109 },
+        { title: 'BASA:EN 초기수학 검사', page: 109 },
+        { title: 'BASA:MP 수학문장제 검사', page: 110 },
+        { title: 'E-RAM 조기 읽기 및 수학 검사', page: 110 },
+        { title: '문해력 발달 과정 탐색 검사', page: 111 },
+        { title: '초등 저학년 초기 문해력 검사', page: 111 },
+        { title: 'RWT 읽기 및 쓰기 검사', page: 112 },
+        { title: 'DT 난독 검사', page: 112 },
+        { title: 'RA-RCP 읽기 성취 검사', page: 113 },
+        { title: 'WA-WCP 쓰기 성취 검사', page: 113 },
+        { title: 'RDA 읽기진단평가', page: 114 },
+        { title: 'LDST 학습장애 선별검사', page: 114 },
+        { title: 'K-LDES 한국판 학습장애 평가 척도', page: 115 },
+        { title: 'Holland 적성검사', page: 118 },
+        { title: 'CAD 진로종합검사', page: 118 },
+        { title: 'MCDT 다차원 진로진단검사', page: 119 },
+        { title: 'COI 커리어앵커 직무특성검사', page: 119 },
+        { title: 'K-CCDI 한국형 커리어 & 역량 개발 검사', page: 120 },
+        { title: 'ECT 앙트러프러너십 역량검사', page: 120 },
+        { title: 'KCMII-2 대학전공선택검사', page: 121 },
+        { title: 'CACV 종합 진로 직업적성검사', page: 121 },
+        { title: 'M-FIT 다요인 지능검사', page: 122 },
+        { title: 'M-FAT 다요인 능력검사', page: 122 },
+        { title: 'CATA 적성검사', page: 123 },
+        { title: 'BLCT 기초학습역량검사', page: 123 },
+        { title: 'KVAT 직무적성검사', page: 124 },
+        { title: 'KVCT 직무역량검사', page: 124 },
+        { title: 'KICS 아동 진로성격강점 검사', page: 125 },
+        { title: 'KICS-L 아동 진로성격강점 검사 저학년', page: 125 },
+        { title: 'CID 디자인 진로역량검사', page: 126 },
+        { title: 'CET 진로탐색검사', page: 126 },
+        { title: 'TOCC 창의성검사', page: 128 },
+        { title: 'TCT-2 탱그램 창의성 검사', page: 128 },
+        { title: 'K-CTC 초등 창의적 특성검사', page: 129 },
+        { title: 'K-CTC 유아 창의적 특성검사', page: 129 },
+        { title: 'K-FCTYC 유아 도형 창의성 검사', page: 130 },
+        { title: 'K-CCTYC 유아 종합 창의성 검사', page: 130 },
+        { title: 'SVR-20 V2 폭력성 평가', page: 132 },
+        { title: 'RSVP 성폭력 위험성 평가', page: 132 },
+        { title: 'SAM 스토킹 위험성 평가', page: 133 },
+        { title: 'HCR-20 V3 폭력위험성평가', page: 133 },
+        { title: 'AQ 공격성 검사', page: 134 },
+        { title: 'PCL-R 사이코패스 체크리스트', page: 134 },
+        { title: 'PPI-R 정신병질 성격평가 검사', page: 135 },
+        { title: 'KISD 성일탈 검사', page: 135 },
+        { title: 'M-FAST 꾀병탐지검사', page: 136 },
+        { title: 'SIRS-2 가장된 증상 감별 면담지', page: 136 },
+        { title: 'R-CRAS 로저스 형사책임평가척도', page: 137 },
+        { title: 'K-CELF-5 한국판 핵심언어 임상평가', page: 140 },
+        { title: 'K-CSBS DP 의사소통 및 상징행동 검사', page: 140 },
+        { title: 'QRW 아동 간편 읽기 및 쓰기 검사', page: 141 },
+        { title: 'UTAP2 우리말조음음운검사2', page: 141 },
+        { title: 'MARC 은유·추론 이해력 검사', page: 142 },
+        { title: 'KOLRA 한국어 읽기검사', page: 142 },
+        { title: 'SMST 조음기관 구조·기능 선별검사', page: 143 },
+        { title: 'SMST-C 조음기관 구조·기능 선별검사-아동', page: 143 },
+        { title: 'LSSC 학령기 아동 언어 검사', page: 144 },
+        { title: 'STAND 실어증·신경언어장애 선별검사', page: 144 },
+        { title: 'UW-SET 우리말 낱말 표현검사', page: 145 },
+        { title: 'KONA 한국어 이야기 평가', page: 145 },
+        { title: 'K-SNAP 영유아 언어 및 의사소통 발달검사', page: 146 },
+        { title: 'KS-PAPT 한국어 표준 그림 조음음운 검사', page: 146 },
+        { title: 'KSA 어음청각검사', page: 147 },
+        { title: 'KOCS 한국 아동 말더듬 검사', page: 147 },
+        { title: 'HFT 손기능 검사', page: 150 },
+        { title: '직업준비검사 (지적/자폐성)', page: 150 },
+        { title: 'CISA-2 지역사회적응검사', page: 151 },
+        { title: 'K-SIB-R 한국판 적응행동검사', page: 151 },
+        { title: 'SIS-C 아동용 지원정도척도', page: 152 },
+        { title: 'PVIT 그림직업흥미검사', page: 152 },
+        { title: '슈퍼브레인 인지중재치료프로그램', page: 154 },
+        { title: 'CogMCI 그룹형 인지중재프로그램', page: 154 },
+        { title: 'CogMCI 재가형 인지중재프로그램', page: 155 },
+        { title: '만화로 하는 사회인지 훈련프로그램', page: 155 },
+        { title: 'SCT 문장완성검사', page: 158 },
+        { title: 'EBDT 정서행동 그림검사', page: 158 },
+        { title: 'SCID-5 시리즈 임상면담', page: 159 },
+        { title: 'SCID-5-AMPD 인격장애 면담', page: 159 },
+        { title: 'Rorschach 로르샤하 검사', page: 160 },
+        { title: 'TAT 주제통각검사', page: 161 },
+        { title: 'BAT 벨락 주제통각검사', page: 161 },
+        { title: 'BGT-II 벤더-게슈탈트 검사', page: 161 },
+        { title: '학지사 DSM-5-TR', page: 162 },
+        { title: '카운피아 온라인 교육', page: 164 },
+        { title: '인싸이트 교육 워크숍', page: 166 },
+        { title: '와이즈박스 도구 목록', page: 169 },
+        { title: '국문 색인 (INDEX)', page: 176 },
+        { title: '영문 색인 (INDEX)', page: 178 },
+        { title: '히스토리', page: 180 },
+        { title: '연구개발진', page: 181 }
+      ];
+      const state = {
+        pages: [],
+        activeIndex: 0,
+        displayMode: 'single',
+        zoomMode: 'fit-width',
+        zoomPercent: 100,
+        spreadWidth: 1440,
+        spreadHeight: 2000,
+        pdfUrl: '2026 인싸이트 카달로그.pdf'
+      };
 
-    const elements = {
-      tocList: document.getElementById("tocList"),
-      searchInput: document.getElementById("searchInput"),
-      collapseNav: document.getElementById("collapseNav"),
-      navHandle: document.getElementById("navHandle"),
-      pageImage: document.getElementById("pageImage"),
-      openPdf: document.getElementById("openPdf"),
-      searchResults: document.getElementById("searchResults"),
-    };
+      const elements = {
+        body: document.body,
+        tocList: document.getElementById('tocList'),
+        quickLinks: document.getElementById('quickLinks'),
+        searchInput: document.getElementById('searchInput'),
+        searchResults: document.getElementById('searchResults'),
+        navToggle: document.getElementById('navToggle'),
+        collapseNav: document.getElementById('collapseNav'),
+        openNavHandle: document.getElementById('openNavHandle'),
+        pageInput: document.getElementById('pageInput'),
+        totalPages: document.getElementById('totalPages'),
+        prevPage: document.getElementById('prevPage'),
+        nextPage: document.getElementById('nextPage'),
+        singleView: document.getElementById('singleView'),
+        dualView: document.getElementById('dualView'),
+        zoomButtons: document.querySelectorAll('.zoom-controls .toolbar-button[data-fit]'),
+        zoomIn: document.getElementById('zoomIn'),
+        zoomOut: document.getElementById('zoomOut'),
+        zoomPercent: document.getElementById('zoomPercent'),
+        fullscreenToggle: document.getElementById('fullscreenToggle'),
+        openPdf: document.getElementById('openPdf'),
+        spread: document.getElementById('spread'),
+        pageStage: document.getElementById('pageStage'),
+        thumbnailStrip: document.getElementById('thumbnailStrip')
+      };
 
-    function renderTOC() {
-      elements.tocList.innerHTML = "";
-      state.pages.forEach((page, index) => {
-        const li = document.createElement("li");
-        const button = document.createElement("button");
-        button.textContent = `${page.page}. ${page.title || "제목 없음"}`;
-        const hint = document.createElement("span");
-        hint.textContent = page.note || "";
-        button.appendChild(hint);
-        button.dataset.index = index;
-        if (index === state.active) button.classList.add("active");
-        li.appendChild(button);
-        elements.tocList.appendChild(li);
+      function buildImagePath(fileName) {
+        if (!fileName) {
+          return '';
+        }
+        return fileName.startsWith('webp/') ? fileName : `webp/${fileName}`;
+      }
+
+      function hideNav() {
+        elements.body.classList.add('nav-hidden');
+      }
+
+      function showNav() {
+        elements.body.classList.remove('nav-hidden');
+      }
+
+      elements.navToggle.addEventListener('click', () => {
+        if (elements.body.classList.contains('nav-hidden')) {
+          showNav();
+        } else {
+          hideNav();
+        }
       });
-    }
 
-    function buildImagePath(filename) {
-      if (!filename) return "";
-      return filename.startsWith("webp/") ? filename : `webp/${filename}`;
-    }
+      elements.collapseNav.addEventListener('click', hideNav);
+      elements.openNavHandle.addEventListener('click', showNav);
 
-    function loadPage(index) {
-      const page = state.pages[index];
-      if (!page) return;
-      state.active = index;
-      elements.pageImage.src = buildImagePath(page.file || "");
-      elements.pageImage.alt = page.title || `Page ${page.page}`;
-      renderTOC();
-      if (window.innerWidth <= 900) {
-        hideNav();
+      function handleResize() {
+        if (window.innerWidth <= 1024) {
+          hideNav();
+        } else {
+          showNav();
+        }
+        applyZoom();
       }
-    }
 
-    elements.tocList.addEventListener("click", (event) => {
-      const button = event.target.closest("button");
-      if (!button) return;
-      loadPage(Number(button.dataset.index));
-    });
+      window.addEventListener('resize', handleResize);
 
-    function buildSnippet(text, keyword) {
-      if (!text) return "";
-      const clean = text.replace(/\s+/g, " ");
-      const lower = clean.toLowerCase();
-      const idx = lower.indexOf(keyword.toLowerCase());
-      const start = Math.max(0, idx - 20);
-      return clean.slice(start, start + 120) + (clean.length > start + 120 ? '…' : '');
-    }
-
-    function renderSearchResults(keyword) {
-      const container = elements.searchResults;
-      container.innerHTML = "";
-      if (!keyword.trim()) {
-        container.classList.remove("visible");
-        return;
+      function goToPage(pageNumber) {
+        if (!state.pages.length) return;
+        const clamped = Math.min(Math.max(pageNumber, 1), state.pages.length);
+        let index = clamped - 1;
+        if (state.displayMode === 'dual' && index % 2 !== 0) {
+          index -= 1;
+        }
+        state.activeIndex = Math.max(0, Math.min(index, state.pages.length - 1));
+        renderSpread();
       }
-      const lower = keyword.trim().toLowerCase();
-      const matches = state.pages.filter((page) => {
-        const haystack = [page.title, page.note, page.text]
-          .join(" ")
-          .toLowerCase();
-        return haystack.includes(lower);
-      }).slice(0, 20);
 
-      if (!matches.length) {
-        const empty = document.createElement("div");
-        empty.className = "search-empty";
-        empty.textContent = "검색 결과가 없습니다.";
-        container.appendChild(empty);
-      } else {
-        matches.forEach((page) => {
-          const button = document.createElement("button");
-          button.type = "button";
-          button.dataset.page = page.page;
-          button.innerHTML = `<strong>${page.page}. ${page.title || "제목 없음"}</strong><span>${buildSnippet(page.text || page.note || "", keyword)}</span>`;
-          container.appendChild(button);
+      function stepPage(direction) {
+        if (!state.pages.length) return;
+        const step = state.displayMode === 'dual' ? 2 : 1;
+        goToPage(state.pages[state.activeIndex].page + direction * step);
+      }
+
+      elements.prevPage.addEventListener('click', () => stepPage(-1));
+      elements.nextPage.addEventListener('click', () => stepPage(1));
+
+      elements.pageInput.addEventListener('change', (event) => {
+        goToPage(Number(event.target.value));
+      });
+
+      function setDisplayMode(mode) {
+        state.displayMode = mode;
+        elements.singleView.classList.toggle('active', mode === 'single');
+        elements.dualView.classList.toggle('active', mode === 'dual');
+        renderSpread();
+      }
+
+      elements.singleView.addEventListener('click', () => setDisplayMode('single'));
+      elements.dualView.addEventListener('click', () => setDisplayMode('dual'));
+
+      function setZoomMode(mode) {
+        state.zoomMode = mode;
+        elements.zoomButtons.forEach((button) => {
+          button.classList.toggle('active', button.dataset.fit === mode);
+        });
+        applyZoom();
+      }
+
+      elements.zoomButtons.forEach((button) => {
+        button.addEventListener('click', () => setZoomMode(button.dataset.fit));
+      });
+
+      function setManualZoom(percent) {
+        state.zoomMode = 'manual';
+        state.zoomPercent = Math.min(Math.max(percent, 10), 400);
+        elements.zoomButtons.forEach((button) => button.classList.remove('active'));
+        applyZoom();
+      }
+
+      elements.zoomIn.addEventListener('click', () => setManualZoom((elements.zoomPercent.valueAsNumber || state.zoomPercent) + 10));
+      elements.zoomOut.addEventListener('click', () => setManualZoom((elements.zoomPercent.valueAsNumber || state.zoomPercent) - 10));
+      elements.zoomPercent.addEventListener('change', (event) => setManualZoom(event.target.valueAsNumber || state.zoomPercent));
+
+      function applyZoom() {
+        const stageWidth = elements.pageStage.clientWidth - 48;
+        const stageHeight = elements.pageStage.clientHeight - 48;
+        let scale = state.zoomPercent / 100;
+
+        if (state.zoomMode === 'fit-width' && state.spreadWidth) {
+          scale = stageWidth / state.spreadWidth;
+        } else if (state.zoomMode === 'fit-height' && state.spreadHeight) {
+          scale = stageHeight / state.spreadHeight;
+        }
+        scale = Math.min(Math.max(scale, 0.1), 4);
+        elements.spread.style.transform = `scale(${scale})`;
+        elements.zoomPercent.value = Math.round(scale * 100);
+      }
+
+      function renderQuickLinks() {
+        const fragment = document.createDocumentFragment();
+        quickLinks.forEach((link) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.dataset.page = link.page;
+          button.innerHTML = `<span>${link.title}</span><strong>${link.page}</strong>`;
+          fragment.appendChild(button);
+        });
+        elements.quickLinks.innerHTML = '';
+        elements.quickLinks.appendChild(fragment);
+      }
+
+      elements.quickLinks.addEventListener('click', (event) => {
+        const button = event.target.closest('button');
+        if (!button) return;
+        goToPage(Number(button.dataset.page));
+      });
+
+      function renderTOC() {
+        const fragment = document.createDocumentFragment();
+        state.pages.forEach((page, index) => {
+          const li = document.createElement('li');
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.dataset.index = index;
+          button.innerHTML = `<span>${page.page.toString().padStart(3, '0')}</span><strong style="flex:1;">${page.title || 'Untitled'}</strong>`;
+          li.appendChild(button);
+          fragment.appendChild(li);
+        });
+        elements.tocList.innerHTML = '';
+        elements.tocList.appendChild(fragment);
+      }
+
+      elements.tocList.addEventListener('click', (event) => {
+        const button = event.target.closest('button');
+        if (!button) return;
+        state.activeIndex = Number(button.dataset.index);
+        renderSpread();
+      });
+
+      function buildSnippet(text, keyword) {
+        if (!text) return '';
+        const clean = text.replace(/\s+/g, ' ');
+        const lower = clean.toLowerCase();
+        const idx = lower.indexOf(keyword.toLowerCase());
+        if (idx === -1) return clean.slice(0, 120);
+        const start = Math.max(0, idx - 20);
+        return `${clean.slice(start, start + 140)}…`;
+      }
+
+      function renderSearchResults(keyword) {
+        const container = elements.searchResults;
+        container.innerHTML = '';
+        if (!keyword.trim()) {
+          container.classList.remove('visible');
+          return;
+        }
+        const lower = keyword.trim().toLowerCase();
+        const matches = state.pages.filter((page) => {
+          const haystack = [page.title, page.note, page.text].join(' ').toLowerCase();
+          return haystack.includes(lower);
+        }).slice(0, 40);
+
+        if (!matches.length) {
+          const empty = document.createElement('div');
+          empty.style.padding = '16px';
+          empty.style.color = 'var(--muted)';
+          empty.textContent = '검색 결과가 없습니다.';
+          container.appendChild(empty);
+        } else {
+          matches.forEach((page) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.dataset.page = page.page;
+            button.innerHTML = `<strong>${page.page}. ${page.title || '제목 없음'}</strong><span>${buildSnippet(page.text || page.note || '', keyword)}</span>`;
+            container.appendChild(button);
+          });
+        }
+        container.classList.add('visible');
+      }
+
+      elements.searchInput.addEventListener('input', (event) => {
+        renderSearchResults(event.target.value);
+      });
+
+      elements.searchResults.addEventListener('click', (event) => {
+        const button = event.target.closest('button');
+        if (!button) return;
+        goToPage(Number(button.dataset.page));
+        elements.searchInput.value = '';
+        elements.searchResults.classList.remove('visible');
+      });
+
+      document.addEventListener('click', (event) => {
+        if (!event.target.closest('.search-field')) {
+          elements.searchResults.classList.remove('visible');
+        }
+      });
+
+      function renderThumbnails() {
+        const fragment = document.createDocumentFragment();
+        state.pages.forEach((page, index) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.dataset.index = index;
+          const img = document.createElement('img');
+          img.loading = 'lazy';
+          img.src = buildImagePath(page.file);
+          img.alt = page.title || `Page ${page.page}`;
+          const label = document.createElement('span');
+          label.textContent = page.page;
+          button.appendChild(img);
+          button.appendChild(label);
+          fragment.appendChild(button);
+        });
+        elements.thumbnailStrip.innerHTML = '';
+        elements.thumbnailStrip.appendChild(fragment);
+      }
+
+      elements.thumbnailStrip.addEventListener('click', (event) => {
+        const button = event.target.closest('button');
+        if (!button) return;
+        state.activeIndex = Number(button.dataset.index);
+        renderSpread();
+      });
+      function updateActiveIndicators() {
+        const activePage = state.pages[state.activeIndex];
+        if (!activePage) return;
+
+        elements.pageInput.value = activePage.page;
+        elements.totalPages.textContent = state.pages.length;
+
+        document.querySelectorAll('#tocList button').forEach((button) => {
+          button.classList.toggle('active', Number(button.dataset.index) === state.activeIndex);
+        });
+        document.querySelectorAll('#quickLinks button').forEach((button) => {
+          button.classList.toggle('active', Number(button.dataset.page) === activePage.page);
+        });
+        document.querySelectorAll('#thumbnailStrip button').forEach((button) => {
+          button.classList.toggle('active', Number(button.dataset.index) === state.activeIndex);
         });
       }
-      container.classList.add("visible");
-    }
 
-    elements.searchInput.addEventListener("input", (event) => {
-      renderSearchResults(event.target.value);
-    });
-
-    elements.searchResults.addEventListener("click", (event) => {
-      const button = event.target.closest("button");
-      if (!button) return;
-      const pageNumber = Number(button.dataset.page);
-      const targetIndex = state.pages.findIndex((p) => p.page === pageNumber);
-      if (targetIndex !== -1) {
-        loadPage(targetIndex);
-        elements.searchInput.value = "";
-        elements.searchResults.classList.remove("visible");
+      function renderSpread() {
+        const firstPage = state.pages[state.activeIndex];
+        if (!firstPage) return;
+        const spreadPages = [firstPage];
+        if (state.displayMode === 'dual') {
+          const secondPage = state.pages[state.activeIndex + 1];
+          if (secondPage) spreadPages.push(secondPage);
+        }
+        elements.spread.innerHTML = '';
+        const figures = spreadPages.map((page) => {
+          const figure = document.createElement('figure');
+          figure.className = 'page-sheet';
+          const img = document.createElement('img');
+          img.src = buildImagePath(page.file);
+          img.alt = page.title || `Page ${page.page}`;
+          img.loading = 'lazy';
+          img.addEventListener('load', measureSpread);
+          const caption = document.createElement('figcaption');
+          caption.textContent = `${page.page}p`;
+          figure.appendChild(img);
+          figure.appendChild(caption);
+          return figure;
+        });
+        figures.forEach((figure) => elements.spread.appendChild(figure));
+        updateActiveIndicators();
+        measureSpread();
       }
-    });
 
-    document.addEventListener("click", (event) => {
-      if (!event.target.closest(".search")) {
-        elements.searchResults.classList.remove("visible");
+      function measureSpread() {
+        const images = elements.spread.querySelectorAll('img');
+        if (!images.length) return;
+        let width = 0;
+        let height = 0;
+        images.forEach((img) => {
+          const naturalWidth = img.naturalWidth || img.width || 1;
+          const naturalHeight = img.naturalHeight || img.height || 1;
+          width += naturalWidth;
+          height = Math.max(height, naturalHeight);
+        });
+        width += (images.length - 1) * 24;
+        state.spreadWidth = width;
+        state.spreadHeight = height;
+        applyZoom();
       }
-    });
 
-    function hideNav() {
-      document.body.classList.add("nav-hidden");
-      document.body.classList.remove("nav-show");
-    }
-
-    function showNav() {
-      document.body.classList.remove("nav-hidden");
-      if (window.innerWidth <= 900) {
-        document.body.classList.add("nav-show");
-      }
-    }
-
-    elements.collapseNav.addEventListener("click", hideNav);
-    elements.navHandle.addEventListener("click", showNav);
-
-    elements.openPdf.addEventListener("click", () => {
-      window.open(state.pdfUrl, "_blank");
-    });
-
-    function handleResize() {
-      if (window.innerWidth > 900) {
-        document.body.classList.remove("nav-hidden", "nav-show");
-      } else {
-        document.body.classList.add("nav-hidden");
-      }
-    }
-
-    window.addEventListener("resize", handleResize);
-
-    fetch("pages.json")
-      .then((resp) => resp.json())
-      .then((data) => {
-        state.pages = data;
-        renderTOC();
-        loadPage(0);
-      })
-      .catch((err) => {
-        console.error(err);
+      elements.openPdf.addEventListener('click', () => {
+        window.open(state.pdfUrl, '_blank');
       });
 
-    handleResize();
+      elements.fullscreenToggle.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen();
+        }
+      });
+
+      document.addEventListener('fullscreenchange', () => {
+        const active = Boolean(document.fullscreenElement);
+        elements.body.classList.toggle('fullscreen-active', active);
+        elements.fullscreenToggle.textContent = active ? '전체화면 종료' : '전체화면';
+      });
+
+      renderQuickLinks();
+      handleResize();
+
+      fetch('pages.json', { cache: 'no-store' })
+        .then((response) => response.json())
+        .then((data) => {
+          state.pages = data;
+          elements.totalPages.textContent = data.length;
+          renderTOC();
+          renderThumbnails();
+          setDisplayMode('single');
+          setZoomMode('fit-width');
+          renderSpread();
+        })
+        .catch((error) => {
+          console.error('페이지 데이터를 불러오지 못했습니다.', error);
+        });
+    })();
   </script>
 </body>
 </html>

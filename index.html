@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Inpsyt 2026 Catalog Viewer</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f2f4f8;
+      --panel: #ffffff;
+      --border: #dfe3eb;
+      --text: #1b2430;
+      --muted: #67748b;
+      --accent: #1f6bff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Pretendard', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+    }
+    nav {
+      width: 300px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+    nav header {
+      padding: 20px;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    nav .manual-index {
+      padding: 0 20px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    nav .manual-index h3 {
+      margin: 0 0 10px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    nav .manual-index ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    nav .manual-index li button {
+      width: 100%;
+      border: none;
+      background: rgba(31, 107, 255, 0.08);
+      color: var(--accent);
+      border-radius: 8px;
+      padding: 6px 10px;
+      text-align: left;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+    nav .manual-index li button span {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }    nav .search {
+      padding: 0 20px 16px;
+    }
+    nav input {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 0.95rem;
+    }
+    #tocList {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      overflow-y: auto;
+      flex: 1;
+    }
+    #tocList li button {
+      width: 100%;
+      border: none;
+      background: none;
+      padding: 12px 20px;
+      text-align: left;
+      font-size: 0.95rem;
+      cursor: pointer;
+      border-left: 4px solid transparent;
+    }
+    #tocList li button.active {
+      background: rgba(31, 107, 255, 0.12);
+      border-left-color: var(--accent);
+      font-weight: 600;
+    }
+    #tocList li button span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .viewer-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 22px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+    .viewer-toolbar h1 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+    .viewer-toolbar button {
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .viewer {
+      flex: 1;
+      display: flex;
+      gap: 20px;
+      padding: 24px;
+      overflow-y: auto;
+    }
+    .page-image {
+      flex: 2.4;
+      min-width: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .page-image img {
+      width: 100%;
+      max-width: 1100px;
+      border-radius: 12px;
+      box-shadow: 0 24px 50px rgba(0,0,0,0.18);
+      background: #fff;
+    }
+    .page-meta {
+      flex: 1;
+      min-width: 280px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 12px 18px rgba(15,23,42,.08);
+    }
+    .page-meta h2 {
+      margin: 0;
+      font-size: 1rem;
+    }
+    .page-meta p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    .page-text {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: #fdfefe;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+    @media (max-width: 1200px) {
+      body {
+        flex-direction: column;
+      }
+      nav {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        transform: translateX(-100%);
+        transition: transform .3s ease;
+        z-index: 1000;
+      }
+      nav.open {
+        transform: translateX(0);
+      }
+      .viewer-toolbar button.toggle-nav {
+        display: inline-flex;
+      }
+      .viewer-toolbar button.primary {
+        margin-left: 8px;
+      }
+      .viewer {
+        flex-direction: column;
+      }
+      .page-meta {
+        width: 100%;
+      }
+    }
+    @media (max-width: 1200px) {
+      .viewer-toolbar button.toggle-nav {
+        background: transparent;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav id="toc">
+    <header>목차</header>
+    <section class="manual-index" id="manualIndex"></section>
+    <div class="search">
+      <input type="search" id="searchInput" placeholder="제목, 요약, 본문 검색" />
+    </div>
+    <ul id="tocList"></ul>
+  </nav>
+  <main>
+    <div class="viewer-toolbar">
+      <div>
+        <button class="toggle-nav" id="toggleNav" type="button">목차</button>
+        <h1 id="pageTitle">불러오는 중…</h1>
+      </div>
+      <button class="primary" id="openPdf" type="button">PDF 원본 열기</button>
+    </div>
+    <div class="viewer">
+      <div class="page-image">
+        <img id="pageImage" src="" alt="Page" loading="lazy" />
+      </div>
+      <section class="page-meta">
+        <div>
+          <h2>요약</h2>
+          <p id="pageNote">JSON 로딩 중…</p>
+        </div>
+        <div class="page-text" id="pageText"></div>
+      </section>
+    </div>
+  </main>
+  <script>
+    const state = {
+      pages: [],
+      active: 0,
+      pdfUrl: "2026 인싸이트 카달로그.pdf",
+    };
+
+    const elements = {
+      toc: document.getElementById("toc"),
+      tocList: document.getElementById("tocList"),
+      search: document.getElementById("searchInput"),
+      toggleNav: document.getElementById("toggleNav"),
+      pageTitle: document.getElementById("pageTitle"),
+      pageImage: document.getElementById("pageImage"),
+      pageNote: document.getElementById("pageNote"),
+      pageText: document.getElementById("pageText"),
+      openPdf: document.getElementById("openPdf"),
+      manualIndex: document.getElementById("manualIndex"),
+    };
+    const manualIndexData = [
+      { title: '고객지원 메뉴 안내', page: 2 },
+      { title: '구매자격 관리 정책', page: 3 },
+      { title: '디지털 배지 안내', page: 4 },
+      { title: '추천검사 의료기관', page: 14 },
+      { title: '추천검사 다문화 발달 검사', page: 16 },
+      { title: '추천검사 영유아보육기관 · Wee센터', page: 17 },
+      { title: '추천검사 느린 학습자 · 가정상담', page: 18 },
+      { title: '추천검사 초·중·고 심리·정서 회복', page: 20 },
+      { title: '추천검사 대학 상담·교수학습·취창업', page: 21 },
+      { title: '추천검사 근로자 지원 프로그램(EAP)', page: 22 },
+      { title: 'K-WISC-V 한국 웩슬러 아동지능검사 5판', page: 26 },
+      { title: 'K-WISC-V 관련 도서 및 QnA', page: 26 },
+      { title: 'K-WPPSI-IV 한국 웩슬러 유아지능검사 4판', page: 27 },
+      { title: 'KABC-II 한국 카우프만 아동 지능검사 2', page: 27 },
+      { title: 'KBIT2 한국판 카우프만 간편지능검사 2', page: 28 },
+      { title: 'K-Leiter-R 한국판 라이터 비언어성 지능검사', page: 28 }
+    ];
+
+    function loadPageByNumber(pageNumber) {
+      const targetIndex = state.pages.findIndex((p) => p.page === pageNumber);
+      if (targetIndex !== -1) {
+        loadPage(targetIndex);
+      }
+    }
+
+    function renderManualIndex() {
+      const container = elements.manualIndex;
+      if (!container) return;
+      container.innerHTML = '';
+      const heading = document.createElement('h3');
+      heading.textContent = '검사 안내 빠른 이동';
+      container.appendChild(heading);
+      const list = document.createElement('ul');
+      manualIndexData.forEach((item) => {
+        const li = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.page = item.page;
+        button.innerHTML = `<span>${item.title}</span><span>${item.page}p</span>`;
+        li.appendChild(button);
+        list.appendChild(li);
+      });
+      container.appendChild(list);
+    }
+    function renderTOC(filter = "") {
+      const keyword = filter.trim().toLowerCase();
+      elements.tocList.innerHTML = "";
+      state.pages.forEach((page, index) => {
+        if (keyword) {
+          const haystack = [page.title, page.note, page.text]
+            .join(" ")
+            .toLowerCase();
+          if (!haystack.includes(keyword)) return;
+        }
+        const li = document.createElement("li");
+        const button = document.createElement("button");
+        button.textContent = `${page.page}. ${page.title || "제목 없음"}`;
+        const hint = document.createElement("span");
+        hint.textContent = page.note || "";
+        button.appendChild(hint);
+        button.dataset.index = index;
+        if (index === state.active) button.classList.add("active");
+        li.appendChild(button);
+        elements.tocList.appendChild(li);
+      });
+    }
+
+    function loadPage(index) {
+      const page = state.pages[index];
+      if (!page) return;
+      state.active = index;
+      elements.pageTitle.textContent = `${page.page}. ${page.title}`;
+      elements.pageImage.src = page.file;
+      elements.pageImage.alt = page.title;
+      elements.pageNote.textContent = page.note || "요약 정보가 없습니다.";
+      elements.pageText.textContent = page.text || "텍스트 정보 없음";
+      renderTOC(elements.search.value);
+    }
+
+    elements.tocList.addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      loadPage(Number(button.dataset.index));
+      elements.toc.classList.remove("open");
+    });
+
+    elements.search.addEventListener("input", () => {
+      renderTOC(elements.search.value);
+    });
+
+    if (elements.manualIndex) {
+      elements.manualIndex.addEventListener('click', (event) => {
+        const button = event.target.closest('button');
+        if (!button) return;
+        loadPageByNumber(Number(button.dataset.page));
+        elements.toc.classList.remove('open');
+      });
+    }
+    elements.toggleNav.addEventListener("click", () => {
+      elements.toc.classList.toggle("open");
+    });
+
+    elements.openPdf.addEventListener("click", () => {
+      window.open(state.pdfUrl, "_blank");
+    });
+
+    renderManualIndex();
+
+    fetch("pages.json")
+      .then((resp) => resp.json())
+      .then((data) => {
+        state.pages = data;
+        renderTOC();
+        loadPage(0);
+      })
+      .catch((err) => {
+        elements.pageTitle.textContent = "JSON을 불러오지 못했습니다.";
+        console.error(err);
+      });
+  </script>
+</body>
+</html>

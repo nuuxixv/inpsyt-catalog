@@ -1,19 +1,19 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Inpsyt 2026 Catalog Viewer</title>
-    <style>
+  <style>
     :root {
       color-scheme: light dark;
-      --bg: #f2f4f8;
+      --bg: #f3f6fb;
       --panel: #ffffff;
-      --border: #dfe3eb;
+      --border: #e0e6ef;
       --text: #1b2430;
-      --muted: #67748b;
+      --muted: #5b6576;
       --accent: #1f6bff;
-      --shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+      --shadow: 0 14px 32px rgba(15, 23, 42, 0.18);
     }
     * { box-sizing: border-box; }
     body {
@@ -24,13 +24,6 @@
       display: flex;
       min-height: 100vh;
       transition: margin 0.3s ease;
-    }
-    body.nav-hidden nav {
-      transform: translateX(-100%);
-    }
-    body.nav-hidden .nav-handle {
-      opacity: 1;
-      pointer-events: auto;
     }
     nav {
       width: 300px;
@@ -46,13 +39,13 @@
     }
     nav header {
       padding: 20px;
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       font-weight: 600;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .collapse-button {
+    #collapseNav {
       border: none;
       background: none;
       font-size: 1.2rem;
@@ -76,15 +69,15 @@
       cursor: pointer;
       border-left: 4px solid transparent;
     }
-    #tocList li button.active {
-      background: rgba(31, 107, 255, 0.12);
-      border-left-color: var(--accent);
-      font-weight: 600;
-    }
     #tocList li button span {
       display: block;
       color: var(--muted);
       font-size: 0.8rem;
+    }
+    #tocList li button.active {
+      background: rgba(31, 107, 255, 0.12);
+      border-left-color: var(--accent);
+      font-weight: 600;
     }
     .nav-handle {
       position: fixed;
@@ -99,7 +92,14 @@
       box-shadow: var(--shadow);
       opacity: 0;
       pointer-events: none;
-      z-index: 999;
+      z-index: 1200;
+    }
+    body.nav-hidden nav {
+      transform: translateX(-100%);
+    }
+    body.nav-hidden .nav-handle {
+      opacity: 1;
+      pointer-events: auto;
     }
     main {
       flex: 1;
@@ -115,17 +115,13 @@
       background: var(--panel);
       gap: 20px;
     }
-    .toolbar-left strong {
-      font-size: 1rem;
-      font-weight: 600;
-    }
     .toolbar-actions {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
       position: relative;
     }
-    .viewer-toolbar .search input {
+    .search input {
       width: 280px;
       padding: 8px 12px;
       border-radius: 10px;
@@ -160,15 +156,15 @@
     .search-results button + button {
       border-top: 1px solid var(--border);
     }
+    .search-results button strong {
+      display: block;
+      font-size: 0.95rem;
+      margin-bottom: 2px;
+    }
     .search-results button span {
       display: block;
       color: var(--muted);
       font-size: 0.8rem;
-    }
-    .search-results button strong {
-      display: block;
-      font-size: 0.9rem;
-      margin-bottom: 2px;
     }
     .search-empty {
       padding: 12px 14px;
@@ -226,11 +222,8 @@
         flex-direction: column;
         align-items: flex-start;
       }
-      .viewer-toolbar .search input {
-        width: 100%;
-      }
+      .search input,
       .search-results {
-        right: 0;
         width: 100%;
       }
       .page-image img {
@@ -241,35 +234,33 @@
 </head>
 <body>
   <nav id="toc">
-    <header>紐⑹감</header>
-    <section class="manual-index" id="manualIndex"></section>
-    <div class="search">
-      <input type="search" id="searchInput" placeholder="?쒕ぉ, ?붿빟, 蹂몃Ц 寃?? />
-    </div>
+    <header>
+      <span>목차</span>
+      <button id="collapseNav" type="button" aria-label="목차 접기">⟨</button>
+    </header>
     <ul id="tocList"></ul>
   </nav>
+  <button class="nav-handle" id="navHandle" type="button" aria-label="목차 열기">목차</button>
   <main>
     <div class="viewer-toolbar">
-      <div>
-        <button class="toggle-nav" id="toggleNav" type="button">紐⑹감</button>
-        <h1 id="pageTitle">遺덈윭?ㅻ뒗 以묅?/h1>
+      <div class="toolbar-left">
+        <strong>Inpsyt Catalog Viewer</strong>
       </div>
-      <button class="primary" id="openPdf" type="button">PDF ?먮낯 ?닿린</button>
+      <div class="toolbar-actions">
+        <div class="search">
+          <input type="search" id="searchInput" placeholder="검색어를 입력하세요" />
+          <div class="search-results" id="searchResults"></div>
+        </div>
+        <button class="primary" id="openPdf" type="button">PDF 원본 열기</button>
+      </div>
     </div>
     <div class="viewer">
       <div class="page-image">
-        <img id="pageImage" src="" alt="Page" loading="lazy" />
+        <img id="pageImage" src="webp/[inpsyt]2026Catalog_001.webp" alt="Page" loading="lazy" />
       </div>
-      <section class="page-meta">
-        <div>
-          <h2>?붿빟</h2>
-          <p id="pageNote">JSON 濡쒕뵫 以묅?/p>
-        </div>
-        <div class="page-text" id="pageText"></div>
-      </section>
     </div>
   </main>
-    <script>
+  <script>
     const state = {
       pages: [],
       active: 0,
@@ -277,7 +268,6 @@
     };
 
     const elements = {
-      toc: document.getElementById("toc"),
       tocList: document.getElementById("tocList"),
       searchInput: document.getElementById("searchInput"),
       collapseNav: document.getElementById("collapseNav"),
@@ -303,11 +293,16 @@
       });
     }
 
+    function buildImagePath(filename) {
+      if (!filename) return "";
+      return filename.startsWith("webp/") ? filename : `webp/${filename}`;
+    }
+
     function loadPage(index) {
       const page = state.pages[index];
       if (!page) return;
       state.active = index;
-      elements.pageImage.src = page.file;
+      elements.pageImage.src = buildImagePath(page.file || "");
       elements.pageImage.alt = page.title || `Page ${page.page}`;
       renderTOC();
       if (window.innerWidth <= 900) {
@@ -428,7 +423,3 @@
   </script>
 </body>
 </html>
-
-
-
-

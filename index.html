@@ -679,14 +679,37 @@
         --thumb-height: 100px;
       }
 
+      body {
+        overflow: auto;
+        /* Allow body scroll for vertical layout */
+        display: block;
+        /* Reset flex for vertical flow */
+      }
+
+      .app-container {
+        height: auto;
+        /* Allow content to grow */
+        overflow: visible;
+      }
+
+      .main-content {
+        height: auto;
+        overflow: visible;
+      }
+
       .sidebar {
         width: 100%;
         max-width: 320px;
+        position: fixed;
+        /* Keep sidebar fixed */
       }
 
-      /* Toolbar: Simplify and scroll */
+      /* Toolbar: Sticky on top */
       .toolbar {
+        position: sticky;
+        top: 0;
         padding: 0 8px;
+        width: 100%;
       }
 
       .toolbar-left {
@@ -701,7 +724,9 @@
       #fitHeightBtn,
       #fitWidthBtn,
       #viewModeBtn,
-      #fullscreenBtn {
+      #fullscreenBtn,
+      #zoomInBtn,
+      #zoomOutBtn {
         display: none !important;
       }
 
@@ -752,7 +777,6 @@
       .btn-text {
         padding: 8px;
         border-radius: 8px;
-        /* Make it look like icon button */
         background: transparent;
         color: #5f6368;
         border: none;
@@ -764,7 +788,6 @@
 
       .btn-text .material-symbols-outlined {
         font-size: 24px;
-        /* Match other icons */
         color: #5f6368;
       }
 
@@ -779,25 +802,54 @@
         font-size: 0.8rem;
       }
 
-      /* Navigation: Hide buttons, rely on swipe */
+      /* Navigation: Hide buttons completely */
       .nav-btn {
-        display: none;
+        display: none !important;
       }
 
-      /* Thumbnails: Smaller */
-      .thumb-img {
-        height: 60px;
+      /* Viewer Stage: Vertical Scroll Layout */
+      .viewer-stage {
+        display: block;
+        height: auto;
+        overflow: visible;
+        padding: 20px 0;
+        /* Add breathing room */
+        background-color: #f0f2f5;
       }
 
+      .spread-container {
+        flex-direction: column;
+        /* Stack images vertically */
+        width: 100% !important;
+        height: auto !important;
+        transform: none !important;
+        box-shadow: none;
+        background: transparent;
+        gap: 20px;
+        /* Space between pages */
+      }
+
+      .book-page {
+        width: 95% !important;
+        /* Prevent full width cramped feel */
+        max-width: 600px;
+        height: auto !important;
+        margin: 0 auto;
+        /* Center horizontally */
+        display: block;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        /* Add shadow to each page */
+      }
+
+      /* Thumbnails: Hidden on mobile vertical scroll */
+      .thumbnail-bar,
       .toggle-thumbs-btn {
-        padding: 4px 16px;
-        bottom: 0;
-        display: flex;
+        display: none !important;
       }
 
       /* Toast: Higher up */
       .toast {
-        bottom: 100px;
+        bottom: 40px;
         font-size: 0.8rem;
         padding: 8px 16px;
       }
@@ -993,13 +1045,53 @@
       function renderSpread() {
         els.loader.classList.add('active');
         els.spreadContainer.style.opacity = '0.5';
+
+        // Check Mobile Mode
+        const isMobile = window.innerWidth <= 768;
+
+        if (isMobile) {
+          // Mobile: Render ALL pages vertically (Lazy Load)
+          // Only clear if switching from desktop to mobile or first load
+          if (!els.spreadContainer.classList.contains('mobile-vertical')) {
+            els.spreadContainer.innerHTML = '';
+            els.spreadContainer.classList.add('mobile-vertical');
+
+            // Render placeholders for all pages
+            const fragment = document.createDocumentFragment();
+            state.pages.forEach(page => {
+              const img = document.createElement('img');
+              img.className = 'book-page lazy-page';
+              img.alt = `${page.page} 페이지`;
+              img.dataset.src = page.file.startsWith('webp/') ? page.file : `webp/${page.file}`;
+              img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // Placeholder
+              fragment.appendChild(img);
+            });
+            els.spreadContainer.appendChild(fragment);
+
+            // Setup Intersection Observer for Lazy Loading & Page Tracking
+            setupMobileObserver();
+          }
+
+          els.loader.classList.remove('active');
+          els.spreadContainer.style.opacity = '1';
+
+          // Scroll to current page if needed (e.g. from search/toc)
+          // We need a slight delay to ensure layout
+          setTimeout(() => {
+            const targetImg = els.spreadContainer.children[state.currentPage - 1];
+            if (targetImg) {
+              targetImg.scrollIntoView({ block: 'start' });
+            }
+          }, 100);
+
+          return;
+        }
+
+        // Desktop/Tablet Logic (Existing)
+        els.spreadContainer.classList.remove('mobile-vertical');
         els.spreadContainer.innerHTML = '';
 
-        // Force single view on mobile
-        const isMobile = window.innerWidth <= 768;
-        const currentViewMode = isMobile ? 'single' : state.viewMode;
-
-        const isDual = currentViewMode === 'dual' && !isMobile;
+        const isDual = state.viewMode === 'dual';
         const pagesToShow = [state.currentPage];
 
         if (isDual && state.currentPage < state.totalPages) {
@@ -1070,6 +1162,46 @@
         });
 
         updateUI();
+      }
+
+      let mobileObserver;
+      function setupMobileObserver() {
+        if (mobileObserver) mobileObserver.disconnect();
+
+        mobileObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const img = entry.target;
+              if (img.dataset.src) {
+                img.src = img.dataset.src;
+                delete img.dataset.src;
+                img.classList.remove('lazy-page');
+              }
+
+              // Update Current Page based on visibility
+              // Find the index
+              const index = Array.from(els.spreadContainer.children).indexOf(img);
+              if (index !== -1) {
+                state.currentPage = index + 1;
+                // Update UI without re-rendering spread (to avoid loop)
+                els.pageInput.value = getDisplayPage(state.currentPage);
+
+                // Update Active TOC/Thumbnail if needed (debounced)
+                clearTimeout(window.scrollUpdateTimer);
+                window.scrollUpdateTimer = setTimeout(() => {
+                  updateUI();
+                }, 500);
+              }
+            }
+          });
+        }, {
+          root: null, // viewport
+          rootMargin: '200px 0px', // Preload margin
+          threshold: 0.1
+        });
+
+        const images = els.spreadContainer.querySelectorAll('.book-page');
+        images.forEach(img => mobileObserver.observe(img));
       }
 
       function renderTOC(items, container = els.tocContent) {

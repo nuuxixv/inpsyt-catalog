@@ -301,7 +301,8 @@
       transition: width 0.3s;
     }
 
-    .search-container:focus-within {
+    .search-container:focus-within,
+    .search-container.active {
       background: #fff;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     }
@@ -737,7 +738,8 @@
         background: transparent;
       }
 
-      .search-container:focus-within {
+      .search-container:focus-within,
+      .search-container.active {
         position: absolute;
         top: 8px;
         right: 8px;
@@ -753,7 +755,8 @@
         display: none;
       }
 
-      .search-container:focus-within .search-input {
+      .search-container:focus-within .search-input,
+      .search-container.active .search-input {
         display: block;
       }
 
@@ -1498,6 +1501,17 @@
         els.zoomInBtn.onclick = () => changeZoom(0.25);
         els.zoomOutBtn.onclick = () => changeZoom(-0.25);
 
+        // Search Icon Click (Mobile)
+        const searchIcon = els.searchContainer.querySelector('.search-icon');
+        if (searchIcon) {
+          searchIcon.onclick = (e) => {
+            if (window.innerWidth <= 768) {
+              els.searchContainer.classList.add('active');
+              setTimeout(() => els.searchInput.focus(), 10);
+            }
+          };
+        }
+
         // Page Input
         els.pageInput.addEventListener('change', (e) => {
           const realPage = getRealPage(e.target.value);
@@ -1516,6 +1530,7 @@
           if (e.key === 'ArrowRight') nextPage();
           if (e.key === 'Escape') {
             els.searchResults.classList.remove('visible');
+            els.searchContainer.classList.remove('active');
             toggleSidebar(false);
           }
           if (e.key === '+' || e.key === '=') changeZoom(0.25);
@@ -1531,25 +1546,28 @@
         document.addEventListener('click', e => {
           if (!els.searchContainer.contains(e.target)) {
             els.searchResults.classList.remove('visible');
+            els.searchContainer.classList.remove('active');
           }
         });
 
-        // Swipe
-        let touchStartX = 0;
-        els.viewerStage.addEventListener('touchstart', e => {
-          touchStartX = e.changedTouches[0].screenX;
+        // PC Mouse Wheel Navigation
+        let wheelTimer;
+        els.viewerStage.addEventListener('wheel', e => {
+          // Only active if not mobile, fit-height mode, and not zoomed
+          if (window.innerWidth > 768 && state.fitMode === 'fit-height' && state.zoom === 1.0) {
+            if (wheelTimer) return;
+
+            if (e.deltaY > 0) {
+              nextPage();
+              wheelTimer = setTimeout(() => { wheelTimer = null; }, 300); // Debounce
+            } else if (e.deltaY < 0) {
+              prevPage();
+              wheelTimer = setTimeout(() => { wheelTimer = null; }, 300); // Debounce
+            }
+          }
         }, { passive: true });
 
-        els.viewerStage.addEventListener('touchend', e => {
-          // Disable swipe if zoomed in
-          if (state.zoom > 1.0) return;
-
-          const touchEndX = e.changedTouches[0].screenX;
-          if (touchEndX < touchStartX - 50) nextPage();
-          if (touchEndX > touchStartX + 50) prevPage();
-        }, { passive: true });
-
-        // Handle Resize to reset view mode if needed
+        // Handle Resize
         window.addEventListener('resize', () => {
           renderSpread();
         });

@@ -1,940 +1,888 @@
-﻿
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>INPSYT 2026 Catalog Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>INPSYT 2026 Catalog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Pretendard:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
-      --bg: #f4f6fb;
+      --primary: #2B398F;
+      --primary-light: #eef2ff;
+      --text: #1e293b;
+      --text-light: #64748b;
+      --bg: #f8fafc;
       --panel: #ffffff;
-      --border: #e5e7eb;
-      --text: #0f172a;
-      --muted: #6b7280;
-      --accent: #2B398F;
-      --accent-soft: rgba(34, 100, 255, 0.08);
-      --shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
-      --thumbnail-space: 220px;
+      --border: #e2e8f0;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      --header-height: 60px;
+      --toc-width: 300px;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
+
     * {
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
-    html, body {
-      width: 100%;
-      max-width: 100vw;
-      overflow-x: hidden;
-    }
+
     body {
       margin: 0;
+      padding: 0;
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
       background: var(--bg);
       color: var(--text);
-      font-family: 'Pretendard', 'Noto Sans KR', 'Segoe UI', sans-serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: row;
-      align-items: stretch;
-    }
-    body.nav-hidden #tocPanel {
-      transform: translateX(-100%);
-      box-shadow: none;
-    }
-    body.nav-hidden #openNavHandle {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    body.fullscreen-active #openNavHandle {
-      top: 16px;
-    }
-    body.thumbnails-collapsed {
-      --thumbnail-space: 96px;
-    }
-    body.thumbnails-collapsed #thumbnailStrip {
-      max-height: 0;
-      opacity: 0;
-      pointer-events: none;
-    }
-    body.thumbnails-collapsed #thumbnailBar {
-      transform: translateY(calc(100% - 48px));
-    }
-    .app-shell {
-      flex: 1;
-      display: flex;
-      width: 100%;
       height: 100vh;
-      min-width: 0;
+      display: flex;
       overflow: hidden;
     }
-    aside#tocPanel {
-      width: 320px;
-      flex: 0 0 320px;
+
+    /* --- Layout --- */
+    .app-container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transition: var(--transition);
+    }
+
+    /* --- Sidebar (TOC) --- */
+    .sidebar {
+      width: var(--toc-width);
       background: var(--panel);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      position: sticky;
+      position: absolute;
+      left: 0;
       top: 0;
-      height: 100vh;
-      max-height: 100vh;
-      overflow: hidden;
-      transition: transform 0.3s ease;
-      z-index: 30;
+      bottom: 0;
+      z-index: 50;
+      transform: translateX(-100%);
+      transition: var(--transition);
+      box-shadow: var(--shadow-lg);
     }
-    #tocPanel header {
-      padding: 20px;
-      border-bottom: 1px solid var(--border);
+
+    .sidebar.open {
+      transform: translateX(0);
+    }
+
+    .sidebar-header {
+      height: var(--header-height);
+      padding: 0 20px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      gap: 10px;
-    }
-    #collapseNav {
-      border: none;
-      background: none;
-      font-size: 1.1rem;
-      cursor: pointer;
-      color: var(--muted);
-    }
-    .nav-section {
-      padding: 16px 20px;
+      justify-content: space-between;
       border-bottom: 1px solid var(--border);
     }
-    .nav-section h2 {
-      margin: 0 0 12px;
-      font-size: 0.9rem;
-      color: var(--muted);
-      letter-spacing: 0.02em;
+
+    .sidebar-title {
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 1.1rem;
     }
-    .nav-section.quick-links {
+
+    .close-sidebar {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      color: var(--text-light);
+      border-radius: 6px;
+    }
+
+    .close-sidebar:hover {
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .sidebar-content {
       flex: 1;
       overflow-y: auto;
-      min-height: 0;
-      padding-right: 8px;
+      padding: 10px;
     }
-    #quickLinks {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin: 0;
-    }
-    #quickLinks button {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 12px;
-      background: #f9fafb;
-      text-align: left;
-      font-size: 0.82rem;
-      color: var(--text);
-      cursor: pointer;
+
+    .toc-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 6px;
-      transition: background 0.2s ease, border-color 0.2s ease;
-    }
-    #quickLinks button strong {
-      font-size: 0.8rem;
-      color: var(--accent);
-    }
-    #quickLinks button.active {
-      border-color: var(--accent);
-      background: var(--accent-soft);
-    }
-    #openNavHandle {
-      position: fixed;
-      left: 16px;
-      top: 24px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 10px 16px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
-      font-weight: 600;
+      width: 100%;
+      padding: 12px 16px;
+      background: none;
+      border: none;
+      border-radius: 8px;
       cursor: pointer;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease;
-      z-index: 40;
+      text-align: left;
+      color: var(--text);
+      font-size: 0.95rem;
+      transition: background 0.2s;
     }
-    main#viewerApp {
+
+    .toc-item:hover {
+      background: var(--bg);
+    }
+
+    .toc-item.active {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .toc-page-num {
+      font-size: 0.8rem;
+      color: var(--text-light);
+      background: #fff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    /* --- Main Viewer --- */
+    .main-content {
       flex: 1;
       display: flex;
       flex-direction: column;
-      height: 100%;
-      max-height: 100vh;
       position: relative;
       width: 100%;
-      min-width: 0;
-      overflow: hidden;
+      transition: margin-left 0.3s;
     }
-    .viewer-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 24px;
+
+    /* Desktop: Push content when sidebar opens */
+    @media (min-width: 1024px) {
+      .sidebar {
+        position: relative;
+        transform: translateX(-100%);
+        margin-right: calc(var(--toc-width) * -1);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+        margin-right: 0;
+      }
+    }
+
+    /* --- Header Toolbar --- */
+    .toolbar {
+      height: var(--header-height);
       background: var(--panel);
       border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    .toolbar-group {
       display: flex;
       align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 40;
+      box-shadow: var(--shadow-sm);
     }
-    .toolbar-group label {
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-    .page-controls,
-    .zoom-controls,
-    .view-controls {
-      display: inline-flex;
+
+    .toolbar-left,
+    .toolbar-right {
+      display: flex;
       align-items: center;
       gap: 8px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 6px 12px;
-      background: #f9fafb;
     }
-    .page-controls input,
-    .zoom-controls input {
-      width: 64px;
+
+    .btn-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       border: none;
       background: transparent;
-      text-align: center;
-      font-size: 0.9rem;
-      outline: none;
-    }
-    .page-controls span,
-    .zoom-controls span {
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-    .toolbar-button {
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 8px 14px;
-      background: var(--panel);
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: border-color 0.2s ease, color 0.2s ease;
-    }
-    .toolbar-button.active {
-      border-color: var(--accent);
-      color: var(--accent);
-      font-weight: 600;
-    }
-    .toolbar-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      border: 1px solid var(--border);
-      background: var(--panel);
-      cursor: pointer;
-      display: grid;
-      place-items: center;
-      font-size: 1rem;
-    }
-    .search-bar {
-      padding: 12px 24px 0;
-    }
-    .search-field {
-      position: relative;
-      width: min(480px, 100%);
-      margin-left: auto;
-    }
-    #searchInput {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 10px 16px;
-      font-size: 0.95rem;
-      outline: none;
-    }
-    #searchResults {
-      position: absolute;
-      top: calc(100% + 6px);
-      right: 0;
-      width: min(520px, 100vw - 32px);
-      max-height: 320px;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
-      display: none;
-      z-index: 12;
-    }
-    #searchResults.visible {
-      display: block;
-    }
-    #searchResults button {
-      width: 100%;
-      border: none;
-      background: none;
-      text-align: left;
-      padding: 12px 16px;
-      cursor: pointer;
-      border-bottom: 1px solid var(--border);
-    }
-    #searchResults button:last-child {
-      border-bottom: none;
-    }
-    #searchResults strong {
-      display: block;
-      font-size: 0.92rem;
-      margin-bottom: 4px;
-    }
-    #searchResults span {
-      font-size: 0.82rem;
-      color: var(--muted);
-    }
-    #viewer {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      min-width: 0;
-      position: relative;
-    }
-    #pageStage {
-      flex: 1;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      position: relative;
-      padding: 24px;
-      padding-bottom: calc(var(--thumbnail-space) + 24px);
-      background: linear-gradient(135deg, #fdfdff 0%, #f4f6fb 100%);
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      width: 100%;
-      max-width: 100%;
-      min-width: 0;
-      min-height: 0;
-      box-sizing: border-box;
-    }
-    #spread {
-      display: inline-flex;
-      gap: 24px;
-      transform-origin: top center;
-      transition: transform 0.15s ease;
-    }
-    .page-sheet {
-      position: relative;
-      border-radius: 18px;
-      box-shadow: 0 25px 60px rgba(15, 23, 42, 0.18);
-      overflow: hidden;
-      background: #fff;
-    }
-    .page-sheet img {
-      display: block;
-      width: auto;
-      height: auto;
-      max-width: none;
-    }
-    .page-sheet figcaption {
-      position: absolute;
-      bottom: 12px;
-      left: 16px;
-      padding: 4px 8px;
-      border-radius: 999px;
-      background: rgba(34, 100, 255, 0.85);
-      color: #fff;
-      font-size: 0.8rem;
-    }
-    #thumbnailBar {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 10px 24px 18px;
-      border-top: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(16px);
-      box-shadow: 0 -14px 32px rgba(15, 23, 42, 0.18);
-      z-index: 50;
-      transition: transform 0.25s ease;
-    }
-    @media (min-width: 1025px) {
-      body:not(.nav-hidden) #thumbnailBar {
-        left: 320px;
-        width: calc(100% - 320px);
-      }
-    }
-    #toggleThumbnails {
-      align-self: flex-end;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      background: var(--panel);
-      padding: 6px 16px;
-      font-size: 0.85rem;
-      cursor: pointer;
-      color: var(--muted);
-      box-shadow: var(--shadow);
-    }
-    #thumbnailStrip {
-      display: flex;
-      gap: 10px;
-      padding: 6px 0;
-      overflow-x: auto;
-      transition: max-height 0.2s ease, opacity 0.2s ease;
-      max-height: 160px;
-    }
-    #thumbnailStrip button {
-      border: 1px solid transparent;
-      border-radius: 12px;
-      padding: 4px;
-      background: none;
-      cursor: pointer;
-      display: grid;
-      gap: 4px;
-      min-width: 96px;
-    }
-    #thumbnailStrip button.active {
-      border-color: var(--accent);
-      background: var(--accent-soft);
-    }
-    #thumbnailStrip img {
-      width: 100%;
       border-radius: 8px;
+      cursor: pointer;
+      color: var(--text);
+      transition: background 0.2s;
+    }
+
+    .btn-icon:hover {
+      background: var(--bg);
+    }
+
+    .btn-icon.active {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .btn-icon svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    .page-indicator {
+      font-variant-numeric: tabular-nums;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-light);
+      padding: 0 12px;
+      cursor: pointer;
+    }
+
+    .page-indicator:hover {
+      color: var(--primary);
+    }
+
+    /* --- Search Bar --- */
+    .search-container {
+      position: relative;
+      width: 240px;
+      transition: width 0.3s;
+    }
+
+    .search-input {
+      width: 100%;
+      height: 36px;
+      padding: 0 12px 0 36px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      font-size: 0.9rem;
+      background: var(--bg);
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+      background: #fff;
+      box-shadow: 0 0 0 2px var(--primary-light);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-light);
+      pointer-events: none;
+    }
+
+    .search-results {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      width: 320px;
+      max-height: 400px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      margin-top: 8px;
+      display: none;
+      z-index: 100;
+    }
+
+    .search-results.visible {
       display: block;
     }
-    #thumbnailStrip span {
-      font-size: 0.78rem;
-      text-align: center;
-      color: var(--muted);
+
+    .search-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--bg);
+      cursor: pointer;
+      transition: background 0.2s;
     }
-    @media (max-width: 1024px) {
-      aside#tocPanel {
-        position: fixed;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        height: 100vh;
-        box-shadow: var(--shadow);
-      }
-      body.nav-hidden main#viewerApp {
-        margin-left: 0;
+
+    .search-item:hover {
+      background: var(--bg);
+    }
+
+    .search-item-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+
+    .search-item-page {
+      font-size: 0.8rem;
+      color: var(--primary);
+      background: var(--primary-light);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    /* --- Viewer Stage --- */
+    .viewer-stage {
+      flex: 1;
+      background: #e2e5e9;
+      /* Neutral gray for reading focus */
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+    }
+
+    .viewer-stage:active {
+      cursor: grabbing;
+    }
+
+    .book-container {
+      position: relative;
+      transition: transform 0.3s cubic-bezier(0.2, 0, 0.2, 1), opacity 0.2s ease;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+      background: #fff;
+      /* Default Fit: Contain */
+      max-width: 100%;
+      max-height: 100%;
+      display: flex;
+    }
+
+    .book-page {
+      display: block;
+      /* Fit logic handled by JS classes */
+    }
+
+    /* Fit Modes */
+    .fit-height .book-container {
+      height: 96%;
+      width: auto;
+    }
+
+    .fit-height .book-page {
+      height: 100%;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .fit-width .book-container {
+      width: 96%;
+      height: auto;
+      overflow-y: auto;
+      display: block;
+    }
+
+    .fit-width .book-page {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* Loading Spinner */
+    .loader {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      z-index: 10;
+      display: none;
+    }
+
+    .loader.active {
+      display: block;
+    }
+
+    @keyframes spin {
+      to {
+        transform: translate(-50%, -50%) rotate(360deg);
       }
     }
+
+    /* --- Navigation Controls (Floating) --- */
+    .nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      transition: all 0.2s;
+      opacity: 0;
+      /* Hidden by default, shown on hover */
+    }
+
+    .viewer-stage:hover .nav-btn {
+      opacity: 1;
+    }
+
+    .nav-btn:hover {
+      background: #fff;
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .nav-prev {
+      left: 20px;
+    }
+
+    .nav-next {
+      right: 20px;
+    }
+
+    /* --- Progress Bar --- */
+    .progress-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(0, 0, 0, 0.1);
+      z-index: 60;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: var(--primary);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    /* --- Toast Notification --- */
+    .toast {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      opacity: 0;
+      transition: all 0.3s;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* --- Mobile Responsive --- */
     @media (max-width: 768px) {
-      .viewer-toolbar {
-        flex-direction: column;
-        align-items: flex-start;
+      .sidebar {
+        width: 100%;
+        max-width: 280px;
       }
-      .search-bar {
-        padding: 12px 16px 0;
+
+      .search-container {
+        width: 40px;
+        overflow: hidden;
+      }
+
+      .search-container.expanded {
+        width: 200px;
+        position: absolute;
+        right: 16px;
+        background: #fff;
+      }
+
+      .search-input {
+        padding-left: 36px;
+      }
+
+      .nav-btn {
+        display: none;
+      }
+
+      /* Use swipe on mobile */
+      .viewer-stage {
+        padding: 0;
+      }
+
+      .fit-height .book-container {
+        height: 100%;
         width: 100%;
       }
-      #pageStage {
-        padding: 16px;
-      }
-      #thumbnailStrip {
-        padding: 10px;
+
+      .fit-height .book-page {
+        object-fit: contain;
       }
     }
   </style>
 </head>
-<body class="nav-hidden">
-  <button id="openNavHandle">목차 열기</button>
-  <div class="app-shell">
-    <aside id="tocPanel">
-      <header>
-        <div>
-          <div style="font-weight:600; font-size:1rem;">INPSYT Catalog</div>
-          <small style="color:var(--muted);">2026</small>
+
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">목차</div>
+      <button class="close-sidebar" id="closeSidebarBtn">
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+        </svg>
+      </button>
+    </div>
+    <div class="sidebar-content" id="tocContent">
+      <!-- TOC Items injected here -->
+    </div>
+  </aside>
+
+  <div class="app-container">
+    <main class="main-content">
+      <!-- Toolbar -->
+      <header class="toolbar">
+        <div class="toolbar-left">
+          <button class="btn-icon" id="toggleSidebarBtn" title="목차">
+            <svg viewBox="0 0 24 24">
+              <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+            </svg>
+          </button>
+          <div class="page-indicator" id="pageIndicator">1 / 1</div>
         </div>
-        <button id="collapseNav" title="목차 접기">⟨</button>
+
+        <div class="toolbar-right">
+          <div class="search-container" id="searchContainer">
+            <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18">
+              <path fill="currentColor"
+                d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+            </svg>
+            <input type="text" class="search-input" id="searchInput" placeholder="검색..." autocomplete="off">
+            <div class="search-results" id="searchResults"></div>
+          </div>
+
+          <button class="btn-icon active" id="fitHeightBtn" title="세로 맞춤">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M15 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h10v14zm2-14v14h2V5h-2z" />
+            </svg>
+          </button>
+          <button class="btn-icon" id="fitWidthBtn" title="가로 맞춤">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2zm2 0h14v14H5V5zm7 9h-2v-2h2v2zm0-4h-2V8h2v2z" />
+            </svg>
+          </button>
+          <button class="btn-icon" id="fullscreenBtn" title="전체화면">
+            <svg viewBox="0 0 24 24">
+              <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
+            </svg>
+          </button>
+        </div>
       </header>
-      <section class="nav-section quick-links">
-        <h2>빠른 이동</h2>
-        <div id="quickLinks"></div>
-      </section>
-    </aside>
-    <main id="viewerApp">
-      <div class="viewer-toolbar">
-        <div class="toolbar-group">
-          <button class="toolbar-button" id="navToggle" type="button">목차</button>
-          <div class="page-controls">
-            <button class="toolbar-icon" id="prevPage" aria-label="이전">‹</button>
-            <input type="number" id="pageInput" min="1" value="1" />
-            <span>/ <span id="totalPages">0</span></span>
-            <button class="toolbar-icon" id="nextPage" aria-label="다음">›</button>
-          </div>
-          <div class="view-controls">
-            <button class="toolbar-button" data-view="single" id="singleView">한면</button>
-            <button class="toolbar-button" data-view="dual" id="dualView">두면</button>
-          </div>
+
+      <!-- Viewer -->
+      <div class="viewer-stage fit-height" id="viewerStage">
+        <div class="loader" id="loader"></div>
+
+        <button class="nav-btn nav-prev" id="prevBtn">
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+          </svg>
+        </button>
+
+        <div class="book-container" id="bookContainer">
+          <!-- Images will be injected here -->
         </div>
-        <div class="toolbar-group">
-          <div class="zoom-controls">
-            <button class="toolbar-button" data-fit="width">가로맞춤</button>
-            <button class="toolbar-button" data-fit="height">세로맞춤</button>
-            <button class="toolbar-icon" id="zoomOut">−</button>
-            <input type="number" id="zoomPercent" value="100" min="10" max="400" />
-            <span>%</span>
-            <button class="toolbar-icon" id="zoomIn">+</button>
-          </div>
-          <button class="toolbar-button" id="fullscreenToggle">전체화면</button>
-          <button class="toolbar-button" id="openPdf">PDF 보기</button>
-        </div>
+
+        <button class="nav-btn nav-next" id="nextBtn">
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+          </svg>
+        </button>
       </div>
-      <div class="search-bar">
-        <div class="search-field">
-          <input type="text" id="searchInput" placeholder="카탈로그 전체 검색" autocomplete="off" />
-          <div id="searchResults"></div>
-        </div>
+
+      <!-- Progress Bar -->
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
       </div>
-      <section id="viewer">
-        <div id="pageStage">
-          <div id="spread"></div>
-        </div>
-        <div id="thumbnailBar">
-          <button type="button" id="toggleThumbnails">썸네일 접기</button>
-          <div id="thumbnailStrip"></div>
-        </div>
-      </section>
+
+      <!-- Toast -->
+      <div class="toast" id="toast">페이지 1</div>
     </main>
   </div>
+
   <script>
     (function () {
-            let quickLinks = [];
       const state = {
         pages: [],
-        activeIndex: 0,
-        displayMode: 'single',
-        zoomMode: 'fit-width',
-        zoomPercent: 100,
-        spreadWidth: 0,
-        spreadHeight: 0,
-        pdfUrl: '2026 인싸이트 카달로그.pdf'
+        currentPage: 1,
+        totalPages: 0,
+        viewMode: 'fit-height', // 'fit-height' | 'fit-width'
+        isSidebarOpen: false,
+        searchQuery: ''
       };
-      window.__viewerState = state;
 
-      const elements = {
-        body: document.body,
-        quickLinks: document.getElementById('quickLinks'),
+      const els = {
+        sidebar: document.getElementById('sidebar'),
+        toggleSidebarBtn: document.getElementById('toggleSidebarBtn'),
+        closeSidebarBtn: document.getElementById('closeSidebarBtn'),
+        tocContent: document.getElementById('tocContent'),
+        viewerStage: document.getElementById('viewerStage'),
+        bookContainer: document.getElementById('bookContainer'),
+        prevBtn: document.getElementById('prevBtn'),
+        nextBtn: document.getElementById('nextBtn'),
+        pageIndicator: document.getElementById('pageIndicator'),
+        progressBar: document.getElementById('progressBar'),
+        toast: document.getElementById('toast'),
+        loader: document.getElementById('loader'),
+        fitHeightBtn: document.getElementById('fitHeightBtn'),
+        fitWidthBtn: document.getElementById('fitWidthBtn'),
+        fullscreenBtn: document.getElementById('fullscreenBtn'),
         searchInput: document.getElementById('searchInput'),
         searchResults: document.getElementById('searchResults'),
-        navToggle: document.getElementById('navToggle'),
-        collapseNav: document.getElementById('collapseNav'),
-        openNavHandle: document.getElementById('openNavHandle'),
-        pageInput: document.getElementById('pageInput'),
-        totalPages: document.getElementById('totalPages'),
-        prevPage: document.getElementById('prevPage'),
-        nextPage: document.getElementById('nextPage'),
-        singleView: document.getElementById('singleView'),
-        dualView: document.getElementById('dualView'),
-        zoomButtons: document.querySelectorAll('.zoom-controls .toolbar-button[data-fit]'),
-        zoomIn: document.getElementById('zoomIn'),
-        zoomOut: document.getElementById('zoomOut'),
-        zoomPercent: document.getElementById('zoomPercent'),
-        fullscreenToggle: document.getElementById('fullscreenToggle'),
-        openPdf: document.getElementById('openPdf'),
-        viewerApp: document.getElementById('viewerApp'),
-        viewer: document.getElementById('viewer'),
-        viewerToolbar: document.querySelector('.viewer-toolbar'),
-        searchBar: document.querySelector('.search-bar'),
-        spread: document.getElementById('spread'),
-        pageStage: document.getElementById('pageStage'),
-        thumbnailStrip: document.getElementById('thumbnailStrip'),
-        thumbnailBar: document.getElementById('thumbnailBar'),
-        toggleThumbnails: document.getElementById('toggleThumbnails')
+        searchContainer: document.getElementById('searchContainer')
       };
-      window.__viewerElements = elements;
 
-      function buildImagePath(fileName) {
-        if (!fileName) {
-          return '';
-        }
-        return fileName.startsWith('webp/') ? fileName : `webp/${fileName}`;
-      }
-
-      function hideNav() {
-        elements.body.classList.add('nav-hidden');
-      }
-
-      function showNav() {
-        elements.body.classList.remove('nav-hidden');
-      }
-
-      elements.navToggle.addEventListener('click', () => {
-        if (elements.body.classList.contains('nav-hidden')) {
-          showNav();
-        } else {
-          hideNav();
-        }
-      });
-
-      elements.collapseNav.addEventListener('click', hideNav);
-      elements.openNavHandle.addEventListener('click', showNav);
-
-      function handleResize() {
-        if (window.innerWidth <= 1024) {
-          hideNav();
-        } else {
-          showNav();
-        }
-        applyZoom();
-      }
-
-      window.addEventListener('resize', handleResize);
-
-      function goToPage(pageNumber) {
-        if (!state.pages.length) return;
-        const clamped = Math.min(Math.max(pageNumber, 1), state.pages.length);
-        let index = clamped - 1;
-        if (state.displayMode === 'dual' && index % 2 !== 0) {
-          index -= 1;
-        }
-        state.activeIndex = Math.max(0, Math.min(index, state.pages.length - 1));
-        renderSpread();
-      }
-
-      function stepPage(direction) {
-        if (!state.pages.length) return;
-        const step = state.displayMode === 'dual' ? 2 : 1;
-        goToPage(state.pages[state.activeIndex].page + direction * step);
-      }
-
-      elements.prevPage.addEventListener('click', () => stepPage(-1));
-      elements.nextPage.addEventListener('click', () => stepPage(1));
-
-      elements.pageInput.addEventListener('change', (event) => {
-        goToPage(Number(event.target.value));
-      });
-
-      function setDisplayMode(mode) {
-        state.displayMode = mode;
-        elements.singleView.classList.toggle('active', mode === 'single');
-        elements.dualView.classList.toggle('active', mode === 'dual');
-        renderSpread();
-      }
-
-      elements.singleView.addEventListener('click', () => setDisplayMode('single'));
-      elements.dualView.addEventListener('click', () => setDisplayMode('dual'));
-
-      function setZoomMode(mode) {
-        state.zoomMode = mode;
-        elements.zoomButtons.forEach((button) => {
-          button.classList.toggle('active', button.dataset.fit === mode);
-        });
-        applyZoom();
-      }
-
-      elements.zoomButtons.forEach((button) => {
-        button.addEventListener('click', () => setZoomMode(button.dataset.fit));
-      });
-
-      function setManualZoom(percent) {
-        state.zoomMode = 'manual';
-        state.zoomPercent = Math.min(Math.max(percent, 10), 400);
-        elements.zoomButtons.forEach((button) => button.classList.remove('active'));
-        applyZoom();
-      }
-
-      elements.zoomIn.addEventListener('click', () => setManualZoom((elements.zoomPercent.valueAsNumber || state.zoomPercent) + 10));
-      elements.zoomOut.addEventListener('click', () => setManualZoom((elements.zoomPercent.valueAsNumber || state.zoomPercent) - 10));
-      elements.zoomPercent.addEventListener('change', (event) => setManualZoom(event.target.valueAsNumber || state.zoomPercent));
-
-      function getAvailableWidth() {
-        const width = elements.viewerApp?.clientWidth || window.innerWidth;
-        return Math.max(width - 48, 200);
-      }
-
-      function getAvailableHeight() {
-        const toolbarHeight = elements.viewerToolbar?.offsetHeight || 0;
-        const searchHeight = elements.searchBar?.offsetHeight || 0;
-        const thumbnailHeight = elements.body.classList.contains('thumbnails-collapsed')
-          ? 56
-          : elements.thumbnailBar?.offsetHeight || 0;
-        return Math.max(window.innerHeight - toolbarHeight - searchHeight - thumbnailHeight - 24, 200);
-      }
-
-      function applyZoom() {
-        if (!state.spreadWidth || !state.spreadHeight) {
-          return;
-        }
-        const availableWidth = getAvailableWidth();
-        const availableHeight = getAvailableHeight();
-        let scale = state.zoomPercent / 100;
-
-        if (state.zoomMode === 'fit-width') {
-          scale = availableWidth / state.spreadWidth;
-        } else if (state.zoomMode === 'fit-height') {
-          scale = availableHeight / state.spreadHeight;
-        }
-        scale = Math.min(Math.max(scale, 0.1), 4);
-        elements.spread.style.transform = `scale(${scale})`;
-        const percent = Math.round(scale * 100);
-        state.zoomPercent = percent;
-        elements.zoomPercent.value = percent;
-      }
-
-      function renderQuickLinks() {
-        if (!elements.quickLinks) return;
-        const fragment = document.createDocumentFragment();
-        quickLinks.forEach((link) => {
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.dataset.page = link.page;
-          button.innerHTML = `<span>${link.title}</span><strong>${link.page}</strong>`;
-          fragment.appendChild(button);
-        });
-        elements.quickLinks.innerHTML = '';
-        elements.quickLinks.appendChild(fragment);
-        const activePage = state.pages[state.activeIndex];
-        if (activePage) {
-          highlightQuickLink(activePage.page);
-        }
-      }
-
-      function highlightQuickLink(pageNumber) {
-        if (!elements.quickLinks) return;
-        elements.quickLinks.querySelectorAll('button').forEach((button) => {
-          button.classList.toggle('active', Number(button.dataset.page) === pageNumber);
-        });
-      }
-
-      function loadQuickLinks() {
-        fetch('quicklinks.json', { cache: 'no-store' })
-          .then((response) => response.json())
-          .then((data) => {
-            quickLinks = data;
-            renderQuickLinks();
-            updateActiveIndicators();
-          })
-          .catch((error) => {
-            console.error('빠른 이동 데이터를 불러오지 못했습니다.', error);
-          });
-      }
-
-      if (elements.quickLinks) {
-        elements.quickLinks.addEventListener('click', (event) => {
-          const button = event.target.closest('button');
-          if (!button) return;
-          goToPage(Number(button.dataset.page));
-        });
-      }
-
-      function buildSnippet(text, keyword) {
-        if (!text) return '';
-        const clean = text.replace(/\s+/g, ' ').trim();
-        if (!clean) return '';
-        if (!keyword) return clean.slice(0, 120);
-        const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const sentenceRegex = new RegExp(`[^.!?\n]*${escaped}[^.!?\n]*`, 'i');
-        const match = clean.match(sentenceRegex);
-        if (match) {
-          return match[0].trim();
-        }
-        const lower = clean.toLowerCase();
-        const idx = lower.indexOf(keyword.toLowerCase());
-        if (idx !== -1) {
-          const startIdx = Math.max(0, idx - 40);
-          const endIdx = Math.min(clean.length, idx + keyword.length + 40);
-          return `${clean.slice(startIdx, endIdx)}…`;
-        }
-        return clean.slice(0, 120);
-      }
-
-      function renderSearchResults(keyword) {
-        const container = elements.searchResults;
-        container.innerHTML = '';
-        if (!keyword.trim()) {
-          container.classList.remove('visible');
-          return;
-        }
-        const term = keyword.trim();
-        const lower = term.toLowerCase();
-        const matches = state.pages.filter((page) => {
-          const haystack = [page.title, page.note, page.text]
-            .join(' ')
-            .toLowerCase();
-          return haystack.includes(lower);
-        }).slice(0, 40);
-
-        if (!matches.length) {
-          const empty = document.createElement('div');
-          empty.style.padding = '16px';
-          empty.style.color = 'var(--muted)';
-          empty.textContent = '검색 결과가 없습니다.';
-          container.appendChild(empty);
-        } else {
-          matches.forEach((page) => {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.dataset.page = page.page;
-            const snippet = buildSnippet(page.text || page.note || '', term) || '일치하는 문장을 찾지 못했습니다.';
-            button.innerHTML = `<strong>${page.title || '제목 없음'} · ${page.page}p</strong><span>${snippet}</span>`;
-            container.appendChild(button);
-          });
-        }
-        container.classList.add('visible');
-      }
-
-      elements.searchInput.addEventListener('input', (event) => {
-        renderSearchResults(event.target.value);
-      });
-
-      elements.searchResults.addEventListener('click', (event) => {
-        const button = event.target.closest('button');
-        if (!button) return;
-        goToPage(Number(button.dataset.page));
-        elements.searchInput.value = '';
-        elements.searchResults.classList.remove('visible');
-      });
-
-      document.addEventListener('click', (event) => {
-        if (!event.target.closest('.search-field')) {
-          elements.searchResults.classList.remove('visible');
-        }
-      });
-
-      function renderThumbnails() {
-        const fragment = document.createDocumentFragment();
-        state.pages.forEach((page, index) => {
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.dataset.index = index;
-          const img = document.createElement('img');
-          img.loading = 'lazy';
-          img.src = buildImagePath(page.file);
-          img.alt = page.title || `Page ${page.page}`;
-          const label = document.createElement('span');
-          label.textContent = page.page;
-          button.appendChild(img);
-          button.appendChild(label);
-          fragment.appendChild(button);
-        });
-        elements.thumbnailStrip.innerHTML = '';
-        elements.thumbnailStrip.appendChild(fragment);
-      }
-
-      elements.thumbnailStrip.addEventListener('click', (event) => {
-        const button = event.target.closest('button');
-        if (!button) return;
-        state.activeIndex = Number(button.dataset.index);
-        renderSpread();
-      });
-
-      function updateThumbnailToggle() {
-        const collapsed = elements.body.classList.contains('thumbnails-collapsed');
-        elements.toggleThumbnails.textContent = collapsed ? '썸네일 펼치기' : '썸네일 접기';
-        applyZoom();
-      }
-
-      elements.toggleThumbnails.addEventListener('click', () => {
-        elements.body.classList.toggle('thumbnails-collapsed');
-        updateThumbnailToggle();
-      });
-      function updateActiveIndicators() {
-        const activePage = state.pages[state.activeIndex];
-        if (!activePage) return;
-
-        elements.pageInput.value = activePage.page;
-        elements.totalPages.textContent = state.pages.length;
-        highlightQuickLink(activePage.page);
-
-        document.querySelectorAll('#thumbnailStrip button').forEach((button) => {
-          button.classList.toggle('active', Number(button.dataset.index) === state.activeIndex);
-        });
-      }
-
-      function renderSpread() {
-        const firstPage = state.pages[state.activeIndex];
-        if (!firstPage) return;
-        const spreadPages = [firstPage];
-        if (state.displayMode === 'dual') {
-          const secondPage = state.pages[state.activeIndex + 1];
-          if (secondPage) spreadPages.push(secondPage);
-        }
-        elements.spread.innerHTML = '';
-        const figures = spreadPages.map((page) => {
-          const figure = document.createElement('figure');
-          figure.className = 'page-sheet';
-          const img = document.createElement('img');
-          img.src = buildImagePath(page.file);
-          img.alt = page.title || `Page ${page.page}`;
-          img.loading = 'lazy';
-          img.addEventListener('load', measureSpread);
-          const caption = document.createElement('figcaption');
-          caption.textContent = `${page.page}p`;
-          figure.appendChild(img);
-          figure.appendChild(caption);
-          return figure;
-        });
-        figures.forEach((figure) => elements.spread.appendChild(figure));
-        updateActiveIndicators();
-        measureSpread();
-      }
-
-      function measureSpread() {
-        const images = elements.spread.querySelectorAll('img');
-        if (!images.length) return;
-        let width = 0;
-        let height = 0;
-        for (const img of images) {
-          const naturalWidth = img.naturalWidth || 0;
-          const naturalHeight = img.naturalHeight || 0;
-          if (!naturalWidth || !naturalHeight) {
-            return;
-          }
-          width += naturalWidth;
-          height = Math.max(height, naturalHeight);
-        }
-        width += (images.length - 1) * 24;
-        state.spreadWidth = width;
-        state.spreadHeight = height;
-        applyZoom();
-      }
-
-      elements.openPdf.addEventListener('click', () => {
-        window.open(state.pdfUrl, '_blank');
-      });
-
-      elements.fullscreenToggle.addEventListener('click', () => {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch(() => {});
-        } else {
-          document.exitFullscreen();
-        }
-      });
-
-      document.addEventListener('fullscreenchange', () => {
-        const active = Boolean(document.fullscreenElement);
-        elements.body.classList.toggle('fullscreen-active', active);
-        elements.fullscreenToggle.textContent = active ? '전체화면 종료' : '전체화면';
-      });
-
-      updateThumbnailToggle();
-      loadQuickLinks();
-      handleResize();
-
-      fetch('pages.json', { cache: 'no-store' })
-        .then((response) => response.json())
-        .then((data) => {
+      // --- Initialization ---
+      async function init() {
+        try {
+          // Load pages.json
+          const res = await fetch('pages.json');
+          const data = await res.json();
           state.pages = data;
-          elements.totalPages.textContent = data.length;
-          renderThumbnails();
-          setDisplayMode('single');
-          setZoomMode('fit-width');
-          renderSpread();
-        })
-        .catch((error) => {
-          console.error('페이지 데이터를 불러오지 못했습니다.', error);
+          state.totalPages = data.length;
+
+          // Load quicklinks.json for TOC
+          const linkRes = await fetch('quicklinks.json');
+          const links = await linkRes.json();
+          renderTOC(links);
+
+          // Initial Render
+          renderPage(1);
+          updateUI();
+
+          // Event Listeners
+          setupEvents();
+
+        } catch (e) {
+          console.error('Init failed', e);
+          showToast('데이터를 불러오는데 실패했습니다.');
+        }
+      }
+
+      // --- Rendering ---
+      function renderPage(pageNum) {
+        if (pageNum < 1 || pageNum > state.totalPages) return;
+
+        // Show loader
+        els.loader.classList.add('active');
+        els.bookContainer.style.opacity = '0.5';
+
+        const pageData = state.pages[pageNum - 1];
+        const imgPath = pageData.file.startsWith('webp/') ? pageData.file : `webp/${pageData.file}`;
+
+        // Create new image
+        const img = new Image();
+        img.className = 'book-page';
+        img.alt = `${pageNum} 페이지`;
+
+        img.onload = () => {
+          els.loader.classList.remove('active');
+          els.bookContainer.innerHTML = '';
+          els.bookContainer.appendChild(img);
+          els.bookContainer.style.opacity = '1';
+          state.currentPage = pageNum;
+          updateUI();
+
+          // Preload next
+          if (pageNum < state.totalPages) {
+            const nextData = state.pages[pageNum];
+            const nextImg = new Image();
+            nextImg.src = nextData.file.startsWith('webp/') ? nextData.file : `webp/${nextData.file}`;
+          }
+        };
+
+        img.src = imgPath;
+      }
+
+      function renderTOC(links) {
+        els.tocContent.innerHTML = '';
+        links.forEach(link => {
+          const item = document.createElement('button');
+          item.className = 'toc-item';
+          item.innerHTML = `
+            <span>${link.title}</span>
+            <span class="toc-page-num">${link.page}p</span>
+          `;
+          item.onclick = () => {
+            renderPage(link.page);
+            if (window.innerWidth < 1024) toggleSidebar(false);
+          };
+          els.tocContent.appendChild(item);
         });
+      }
+
+      function updateUI() {
+        // Update Text
+        els.pageIndicator.textContent = `${state.currentPage} / ${state.totalPages}`;
+
+        // Update Progress Bar
+        const progress = (state.currentPage / state.totalPages) * 100;
+        els.progressBar.style.width = `${progress}%`;
+
+        // Update Buttons
+        els.prevBtn.style.display = state.currentPage === 1 ? 'none' : 'flex';
+        els.nextBtn.style.display = state.currentPage === state.totalPages ? 'none' : 'flex';
+
+        // Update TOC Active State
+        const tocItems = els.tocContent.querySelectorAll('.toc-item');
+        tocItems.forEach(item => {
+          const pageNum = parseInt(item.querySelector('.toc-page-num').textContent);
+          if (pageNum === state.currentPage) item.classList.add('active');
+          else item.classList.remove('active');
+        });
+      }
+
+      // --- Actions ---
+      function nextPage() {
+        if (state.currentPage < state.totalPages) {
+          renderPage(state.currentPage + 1);
+          showToast(`${state.currentPage + 1} 페이지`);
+        }
+      }
+
+      function prevPage() {
+        if (state.currentPage > 1) {
+          renderPage(state.currentPage - 1);
+          showToast(`${state.currentPage - 1} 페이지`);
+        }
+      }
+
+      function toggleSidebar(force) {
+        state.isSidebarOpen = force !== undefined ? force : !state.isSidebarOpen;
+        if (state.isSidebarOpen) {
+          els.sidebar.classList.add('open');
+          els.toggleSidebarBtn.classList.add('active');
+        } else {
+          els.sidebar.classList.remove('open');
+          els.toggleSidebarBtn.classList.remove('active');
+        }
+      }
+
+      function setViewMode(mode) {
+        state.viewMode = mode;
+        els.viewerStage.className = `viewer-stage ${mode}`;
+
+        els.fitHeightBtn.classList.toggle('active', mode === 'fit-height');
+        els.fitWidthBtn.classList.toggle('active', mode === 'fit-width');
+
+        showToast(mode === 'fit-height' ? '세로 맞춤' : '가로 맞춤');
+      }
+
+      function showToast(msg) {
+        els.toast.textContent = msg;
+        els.toast.classList.add('show');
+        clearTimeout(window.toastTimer);
+        window.toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2000);
+      }
+
+      // --- Search ---
+      function handleSearch(query) {
+        const q = query.trim().toLowerCase();
+        if (!q) {
+          els.searchResults.classList.remove('visible');
+          return;
+        }
+
+        const matches = state.pages.filter(p => {
+          const text = (p.title + ' ' + (p.text || '')).toLowerCase();
+          return text.includes(q);
+        }).slice(0, 10); // Limit results
+
+        els.searchResults.innerHTML = '';
+        if (matches.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'search-item';
+          empty.textContent = '검색 결과가 없습니다.';
+          els.searchResults.appendChild(empty);
+        } else {
+          matches.forEach(p => {
+            const item = document.createElement('div');
+            item.className = 'search-item';
+            item.innerHTML = `
+              <div class="search-item-title">${p.title || '제목 없음'}</div>
+              <div class="search-item-page">${p.page} 페이지</div>
+            `;
+            item.onclick = () => {
+              renderPage(p.page);
+              els.searchResults.classList.remove('visible');
+              els.searchInput.value = '';
+            };
+            els.searchResults.appendChild(item);
+          });
+        }
+        els.searchResults.classList.add('visible');
+      }
+
+      // --- Events ---
+      function setupEvents() {
+        els.prevBtn.onclick = prevPage;
+        els.nextBtn.onclick = nextPage;
+
+        els.toggleSidebarBtn.onclick = () => toggleSidebar();
+        els.closeSidebarBtn.onclick = () => toggleSidebar(false);
+
+        els.fitHeightBtn.onclick = () => setViewMode('fit-height');
+        els.fitWidthBtn.onclick = () => setViewMode('fit-width');
+
+        els.fullscreenBtn.onclick = () => {
+          if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+          else document.exitFullscreen();
+        };
+
+        // Keyboard
+        document.addEventListener('keydown', e => {
+          if (e.key === 'ArrowLeft') prevPage();
+          if (e.key === 'ArrowRight') nextPage();
+          if (e.key === 'Escape') {
+            els.searchResults.classList.remove('visible');
+            toggleSidebar(false);
+          }
+        });
+
+        // Search Debounce
+        let searchTimer;
+        els.searchInput.addEventListener('input', e => {
+          clearTimeout(searchTimer);
+          searchTimer = setTimeout(() => handleSearch(e.target.value), 300);
+        });
+
+        // Click outside search
+        document.addEventListener('click', e => {
+          if (!els.searchContainer.contains(e.target)) {
+            els.searchResults.classList.remove('visible');
+          }
+        });
+
+        // Swipe
+        let touchStartX = 0;
+        els.viewerStage.addEventListener('touchstart', e => {
+          touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        els.viewerStage.addEventListener('touchend', e => {
+          const touchEndX = e.changedTouches[0].screenX;
+          if (touchEndX < touchStartX - 50) nextPage();
+          if (touchEndX > touchStartX + 50) prevPage();
+        }, { passive: true });
+
+        // Page Indicator Click -> Prompt
+        els.pageIndicator.onclick = () => {
+          const num = prompt(`페이지 이동 (1 ~ ${state.totalPages})`);
+          if (num) renderPage(parseInt(num));
+        };
+      }
+
+      init();
     })();
   </script>
 </body>
+
 </html>
